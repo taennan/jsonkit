@@ -1,0 +1,38 @@
+{
+  "name": "@jsonkit/db",
+  "version": "1.0.0",
+  "description": "Simple database using JSON and your local filesystem",
+  "license": "ISC",
+  "author": "taennan taennan.dev@protonmail.com",
+  "type": "module",
+  "main": "dist/cjs/index.cjs",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "npm run clean && npm run build:bundle && npm run build:types",
+    "clean": "rm -rf dist",
+    "check": "tsc --noEmit",
+    "build:bundle": "npx rollup -c --bundleConfigAsCjs",
+    "build:types": "tsc -p tsconfig.json",
+    "fmt": "prettier --write .",
+    "test": "jest"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@jsonkit/tools": "file:///Users/taennanrickman/Programming/Projects/@jsonkit/tools"
+  }
+}

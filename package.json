@@ -1,0 +1,24 @@
+{
+  "name": "@jsonkit/workspace",
+  "version": "1.0.0",
+  "description": "A collection of packages for dealing with json",
+  "license": "UNLICENSED",
+  "author": "taennan taennan.dev@protonmail.com",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "fmt": "prettier --write ."
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.0.5",
+    "prettier": "^3.7.4",
+    "rollup": "^4.46.2",
+    "ts-jest": "^29.4.1",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.2"
+  }
+}

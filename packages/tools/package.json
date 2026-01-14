@@ -1,0 +1,41 @@
+{
+  "name": "@jsonkit/tools",
+  "version": "1.0.0",
+  "description": "Json parsing and patching tools",
+  "license": "ISC",
+  "author": "taennan taennan.dev@protonmail.com",
+  "type": "module",
+  "main": "dist/cjs/index.cjs",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "npm run clean && npm run build:bundle && npm run build:types",
+    "clean": "rm -rf dist",
+    "check": "tsc --noEmit",
+    "build:bundle": "npx rollup -c --bundleConfigAsCjs",
+    "build:types": "tsc -p tsconfig.json",
+    "fmt": "prettier --write .",
+    "test": "jest"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "fast-json-patch": "^3.1.1"
+  },
+  "devDependencies": {
+    "@jsonkit/tools-schema": "file:///Users/taennanrickman/Programming/Projects/@jsonkit/tools-schema"
+  }
+}

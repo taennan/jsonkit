@@ -1,0 +1,3 @@
+{
+  "references": [{ "path": "./packages/db" }, { "path": "./packages/tools" }],
+}
