@@ -1,6 +1,6 @@
 {
   "name": "@jsonkit/db",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple database using JSON and your local filesystem",
   "license": "MIT",
   "author": "taennan <taennan.dev@protonmail.com>",

@@ -1,6 +1,6 @@
 {
   "name": "@jsonkit/tools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Json parsing and patching tools",
   "license": "MIT",
   "author": "taennan <taennan.dev@protonmail.com>",
@@ -41,8 +41,5 @@
   ],
   "dependencies": {
     "fast-json-patch": "^3.1.1"
-  },
-  "devDependencies": {
-    "@jsonkit/tools-schema": "file:///Users/taennanrickman/Programming/Projects/@jsonkit/tools-schema"
   }
 }
