@@ -38,8 +38,5 @@
   },
   "files": [
     "dist"
-  ],
-  "dependencies": {
-    "@jsonkit/tools": "file:///Users/taennanrickman/Programming/Projects/@jsonkit/tools"
-  }
+  ]
 }

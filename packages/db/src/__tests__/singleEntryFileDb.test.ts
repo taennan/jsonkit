@@ -1,6 +1,4 @@
 import { SingleEntryFileDb } from '../singleEntryFileDb'
-import { FilesService } from '../files'
-import { JsonParser } from '@jsonkit/tools'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 
@@ -25,14 +23,13 @@ const mockData = (data: Partial<MockData> = {}): MockData => {
   }
 }
 
-const testOutputPath = path.join(__dirname, 'singleFileDb')
+const testOutputPath = path.join(__dirname, 'singleEntryFileDb')
 
 const dbpath = (...segments: string[]) => path.join(testOutputPath, ...segments)
 
 const createDb = (filename: string) => {
   const filepath = dbpath(filename)
-  const filesService = new FilesService()
-  const database = new SingleEntryFileDb<MockData>(filepath, new JsonParser())
+  const database = new SingleEntryFileDb<MockData>(filepath)
 
   return { db: database, filepath }
 }
@@ -78,8 +75,7 @@ describe('SingleEntryFileDb', () => {
 
   describe('constructor and configure', () => {
     it('should create a new instance of SingleEntryFileDb', () => {
-      const filesService = new FilesService()
-      const db = new SingleEntryFileDb<MockData>(testOutputPath, new JsonParser())
+      const db = new SingleEntryFileDb<MockData>(testOutputPath)
       expect(db).toBeInstanceOf(SingleEntryFileDb)
     })
 
@@ -175,8 +171,7 @@ describe('SingleEntryFileDb', () => {
     it('creates parent directory if it does not exist', async () => {
       const data = mockData({ name: 'mkdir-test' })
       const filepath = dbpath('deep', 'nested', 'directory', 'mkdir-test.json')
-      const filesService = new FilesService()
-      const db = new SingleEntryFileDb<MockData>(filepath, new JsonParser())
+      const db = new SingleEntryFileDb<MockData>(filepath)
 
       const result = await db.write(data)
 

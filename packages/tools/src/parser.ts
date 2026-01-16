@@ -2,7 +2,7 @@ import type { JsonPath } from './types'
 import { JsonPatcher } from './patcher'
 import { JsonPatchBuilder } from './builder'
 import { JsonPathJoiner } from './pathJoiner'
-import * as fastJsonPatch from 'fast-json-patch'
+import fastJsonPatch from 'fast-json-patch'
 
 export enum JsonFieldConversion {
   Date = 'date',
@@ -47,6 +47,8 @@ export class JsonParser {
   }
 
   protected convertValue(value: unknown, conversion: JsonFieldConversion) {
+    if (value === undefined || value === null) return value
+
     const isString = typeof value === 'string'
 
     if (conversion === JsonFieldConversion.Date && isString) {

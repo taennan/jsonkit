@@ -18,6 +18,25 @@ describe('JsonParser', () => {
     expect(actual).toEqual(expected)
   })
 
+  it('ignores specified parse fields if the value is null', () => {
+    const expected = {
+      firstName: 'Robert',
+      middleNames: 'James',
+      lastName: 'Fischer',
+      championDate: null,
+    }
+
+    const input = JSON.stringify(expected)
+    const actual = new JsonParser([
+      {
+        path: 'championDate',
+        conversion: JsonFieldConversion.Date,
+      },
+    ]).parse(input)
+
+    expect(actual).toEqual(expected)
+  })
+
   it('converts complex json fields', () => {
     const expected = {
       firstName: 'Robert',

@@ -1,6 +1,11 @@
-import type { Identifiable, DeleteManyOutput, Promisable, PredicateFn } from './types'
+import type {
+  Identifiable,
+  DeleteManyOutput,
+  Promisable,
+  PredicateFn,
+  JsonEntryParser,
+} from './types'
 import { FilesService } from './files'
-import { JsonParser } from '@jsonkit/tools'
 import * as path from 'path'
 
 export class MultiEntryFileDb<T extends Identifiable> {
@@ -8,7 +13,7 @@ export class MultiEntryFileDb<T extends Identifiable> {
 
   constructor(
     protected readonly dirpath: string,
-    protected readonly parser: JsonParser,
+    protected readonly parser: JsonEntryParser<T> = JSON,
   ) {}
 
   async create(entry: T): Promise<T> {
@@ -39,9 +44,7 @@ export class MultiEntryFileDb<T extends Identifiable> {
 
     for (const id of ids) {
       const entry = await this.readEntry(id)
-      if (entry) {
-        entries.push(entry)
-      }
+      if (entry) entries.push(entry)
     }
 
     return entries
@@ -133,9 +136,10 @@ export class MultiEntryFileDb<T extends Identifiable> {
     try {
       const filepath = this.getFilePath(id)
       const text = await this.files.read(filepath)
-      const entry = this.parser.parse<T>(text)
+      const entry = this.parser.parse(text)
       return entry
-    } catch {
+    } catch (error) {
+      console.error('Failed to read entry', error)
       // File doesn't exist or invalid JSON
       return null
     }

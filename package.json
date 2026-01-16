@@ -1,6 +1,6 @@
 {
   "name": "@jsonkit/workspace",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A collection of packages for dealing with json",
   "license": "MIT",
   "author": "taennan <taennan.dev@protonmail.com>",

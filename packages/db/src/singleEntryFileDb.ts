@@ -1,13 +1,12 @@
-import type { Identifiable, Promisable } from './types'
+import type { JsonEntryParser, Promisable } from './types'
 import { FilesService } from './files'
-import { JsonParser } from '@jsonkit/tools'
 
 export class SingleEntryFileDb<T> {
   protected readonly files: FilesService = new FilesService()
 
   constructor(
     protected readonly filepath: string,
-    protected readonly parser: JsonParser,
+    protected readonly parser: JsonEntryParser<T> = JSON,
   ) {}
 
   path() {
@@ -21,7 +20,7 @@ export class SingleEntryFileDb<T> {
 
   async read() {
     const text = await this.files.read(this.filepath)
-    const entry = this.parser.parse<T>(text)
+    const entry = this.parser.parse(text)
     return entry
   }
 

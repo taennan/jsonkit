@@ -1,7 +1,5 @@
 import type { Identifiable } from '../types'
 import { MultiEntryFileDb } from '../multiEntryFileDb'
-import { FilesService } from '../files'
-import { JsonParser } from '@jsonkit/tools'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 
@@ -20,7 +18,7 @@ const mockEntry = (data: Partial<MockEntry> = {}): MockEntry => {
   }
 }
 
-const testOutputPath = path.join(__dirname, 'dirDb')
+const testOutputPath = path.join(__dirname, 'multiEntryFileDb')
 
 const dbpath = (...segments: string[]) => path.join(testOutputPath, ...segments)
 
@@ -32,8 +30,7 @@ const createDb = (
 ) => {
   const { initialEntries } = options
   const dirpath = dbpath(dirName)
-  const filesService = new FilesService()
-  const database = new MultiEntryFileDb<MockEntry>(dirpath, new JsonParser())
+  const database = new MultiEntryFileDb<MockEntry>(dirpath)
 
   return { db: database, dirpath, initialEntries }
 }
@@ -74,8 +71,7 @@ describe('MultiEntryFileDb', () => {
   describe('constructor', () => {
     it('should create a new instance of MultiEntryFileDb', () => {
       const dirpath = dbpath('constructor-test')
-      const filesService = new FilesService()
-      const db = new MultiEntryFileDb<MockEntry>(dirpath, new JsonParser())
+      const db = new MultiEntryFileDb<MockEntry>(dirpath)
       expect(db).toBeInstanceOf(MultiEntryFileDb)
     })
   })
@@ -134,8 +130,7 @@ describe('MultiEntryFileDb', () => {
     })
 
     it('returns null when directory does not exist', async () => {
-      const filesService = new FilesService()
-      const db = new MultiEntryFileDb<MockEntry>('/tmp/nonexistant', new JsonParser())
+      const db = new MultiEntryFileDb<MockEntry>('/tmp/nonexistant')
       const result = await db.getById('any-id')
 
       expect(result).toBeNull()

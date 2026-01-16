@@ -1,6 +1,6 @@
 import type { PatchResult, JsonPatchOperation } from './types'
 import { JsonPatchOperationType } from './types'
-import * as fastJsonPatch from 'fast-json-patch'
+import fastJsonPatch from 'fast-json-patch'
 
 // TODO: fast-json-patch does not handle BigInts
 export class JsonPatcher {
