@@ -4,17 +4,24 @@ import type {
   Promisable,
   PredicateFn,
   JsonEntryParser,
+  MultiEntryFileDbOptions,
 } from './types'
 import { FilesService } from './files'
 import * as path from 'path'
 
 export class MultiEntryFileDb<T extends Identifiable> {
-  protected readonly files: FilesService = new FilesService()
+  protected readonly files: FilesService
+  protected readonly parser: JsonEntryParser<T>
+  readonly noPathlikeIds: boolean
 
   constructor(
     protected readonly dirpath: string,
-    protected readonly parser: JsonEntryParser<T> = JSON,
-  ) {}
+    options?: MultiEntryFileDbOptions<T>,
+  ) {
+    this.files = new FilesService()
+    this.parser = options?.parser ?? JSON
+    this.noPathlikeIds = options?.noPathlikeIds ?? true
+  }
 
   async create(entry: T): Promise<T> {
     await this.writeEntry(entry)
@@ -133,6 +140,8 @@ export class MultiEntryFileDb<T extends Identifiable> {
   }
 
   protected async readEntry(id: T['id']) {
+    if (!this.isIdValid(id)) throw new Error(`Invalid id: ${id}`)
+
     try {
       const filepath = this.getFilePath(id)
       const text = await this.files.read(filepath)
@@ -146,8 +155,20 @@ export class MultiEntryFileDb<T extends Identifiable> {
   }
 
   protected async writeEntry(entry: T) {
+    if (!this.isIdValid(entry.id)) throw new Error(`Invalid id: ${entry.id}`)
+
     const filepath = this.getFilePath(entry.id)
     await this.files.write(filepath, JSON.stringify(entry, null, 2))
+  }
+
+  isIdValid(id: T['id']): boolean {
+    if (typeof id !== 'string') return false
+
+    if (!this.noPathlikeIds) return true
+
+    if (id.includes('/') || id.includes('\\')) return false
+
+    return true
   }
 
   protected async *iterEntries() {

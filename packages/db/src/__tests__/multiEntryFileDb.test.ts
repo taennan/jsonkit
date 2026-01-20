@@ -307,4 +307,34 @@ describe('MultiEntryFileDb', () => {
       expect(count).toBe(1)
     })
   })
+
+  describe('isIdValid', () => {
+    it('returns false when id has forward slashes by default', () => {
+      const db = new MultiEntryFileDb('')
+      const input = '../otherDir/otherFile.json'
+      const actual = db.isIdValid(input)
+      expect(actual).toBe(false)
+    })
+
+    it('returns true when id has forward slashes when allowed via options', () => {
+      const db = new MultiEntryFileDb('', { noPathlikeIds: false })
+      const input = '../otherDir/otherFile.json'
+      const actual = db.isIdValid(input)
+      expect(actual).toBe(true)
+    })
+
+    it('returns false when id has back slashes by default', () => {
+      const db = new MultiEntryFileDb('')
+      const input = 'C:\\otherDir\\otherFile.json'
+      const actual = db.isIdValid(input)
+      expect(actual).toBe(false)
+    })
+
+    it('returns true when id has back slashes when allowed via options', () => {
+      const db = new MultiEntryFileDb('', { noPathlikeIds: false })
+      const input = 'C:\\otherDir\\otherFile.json'
+      const actual = db.isIdValid(input)
+      expect(actual).toBe(true)
+    })
+  })
 })

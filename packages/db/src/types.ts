@@ -17,6 +17,11 @@ export type JsonEntryParser<T> = {
   parse: (text: string) => T
 }
 
+export type MultiEntryFileDbOptions<T> = {
+  noPathlikeIds?: boolean
+  parser?: JsonEntryParser<T>
+}
+
 export type FileMeta = {
   path: string
   size: number
