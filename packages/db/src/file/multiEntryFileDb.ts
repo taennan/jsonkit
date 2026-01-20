@@ -1,16 +1,17 @@
-import type {
+import {
   Identifiable,
   DeleteManyOutput,
   Promisable,
   PredicateFn,
   JsonEntryParser,
   MultiEntryFileDbOptions,
-} from './types'
-import { FilesService } from './files'
+  MultiEntryDb,
+} from '../types'
+import { Files } from './files'
 import * as path from 'path'
 
-export class MultiEntryFileDb<T extends Identifiable> {
-  protected readonly files: FilesService
+export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
+  protected readonly files: Files
   protected readonly parser: JsonEntryParser<T>
   readonly noPathlikeIds: boolean
 
@@ -18,7 +19,8 @@ export class MultiEntryFileDb<T extends Identifiable> {
     protected readonly dirpath: string,
     options?: MultiEntryFileDbOptions<T>,
   ) {
-    this.files = new FilesService()
+    super()
+    this.files = new Files()
     this.parser = options?.parser ?? JSON
     this.noPathlikeIds = options?.noPathlikeIds ?? true
   }

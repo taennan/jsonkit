@@ -1,4 +1,4 @@
-import type { Identifiable } from '../types'
+import type { Identifiable } from '../../types'
 import { MultiEntryFileDb } from '../multiEntryFileDb'
 import * as fs from 'fs/promises'
 import * as path from 'path'

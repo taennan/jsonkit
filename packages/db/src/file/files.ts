@@ -1,5 +1,5 @@
-import type { FileMeta } from './types'
-import { FileType } from './types'
+import type { FileMeta } from '../types'
+import { FileType } from '../types'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as fsSync from 'fs'
@@ -31,7 +31,7 @@ type CopyOptions = {
 
 const DEFUALT_ENCODING: BufferEncoding = 'utf-8'
 
-export class FilesService {
+export class Files {
   async move(oldPath: string, newPath: string) {
     await fs.rename(oldPath, newPath)
   }
