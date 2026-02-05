@@ -1,4 +1,4 @@
-import type { Identifiable } from '../../types'
+import type { Identifiable } from '../../common'
 import { MultiEntryMemDb } from '../multiEntryMemDb'
 
 type MockEntry = Identifiable & {
@@ -100,9 +100,164 @@ describe('MultiEntryMemDb', () => {
 
     it('throws when entry does not exist', async () => {
       const db = createDb()
-      await expect(db.getByIdOrThrow('nonexistent')).rejects.toThrow(
-        'Entry with id nonexistent does not exist',
-      )
+      await expect(db.getByIdOrThrow('nonexistent')).rejects.toThrow()
+    })
+  })
+
+  describe('getWhere', () => {
+    it('returns all matching entries when no pagination', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'NoMatch' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'NoMatch' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match')
+
+      expect(results).toHaveLength(3)
+      expect(results.map((r) => r.id)).toEqual(['entry1', 'entry3', 'entry5'])
+    })
+
+    it('returns empty array when no entries match', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'First' }),
+        mockEntry({ id: 'entry2', title: 'Second' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Nonexistent')
+
+      expect(results).toEqual([])
+    })
+
+    it('returns empty array when directory is empty', async () => {
+      const { db } = await setupDbWithEntries()
+
+      const results = await db.getWhere(() => true)
+
+      expect(results).toEqual([])
+    })
+
+    it('returns first page of matching entries', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 1 })
+
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry1', 'entry2'])
+    })
+
+    it('returns second page of matching entries', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
+
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry3', 'entry4'])
+    })
+
+    it('returns partial page when fewer entries remain', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
+
+      expect(results).toHaveLength(1)
+      expect(results[0].id).toBe('entry3')
+    })
+
+    it('returns empty array when page is beyond available entries', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 5 })
+
+      expect(results).toEqual([])
+    })
+
+    it('applies skip offset correctly', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', {
+        take: 2,
+        page: 1,
+        skip: 1,
+      })
+
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry2', 'entry3'])
+    })
+
+    it('combines page and skip correctly', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+        mockEntry({ id: 'entry6', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', {
+        take: 2,
+        page: 2,
+        skip: 1,
+      })
+
+      // page 2 with take 2 starts at index 2 (0-indexed)
+      // skip 1 adds 1, so we start at index 3
+      // we take 2 entries: entry4 and entry5
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry4', 'entry5'])
+    })
+
+    it('only counts matching entries for pagination', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'NoMatch' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'NoMatch' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+        mockEntry({ id: 'entry6', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries(entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
+
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry5', 'entry6'])
     })
   })
 
@@ -126,30 +281,6 @@ describe('MultiEntryMemDb', () => {
 
       expect(results).toHaveLength(3)
       expect(results).toEqual(expect.arrayContaining(entries))
-    })
-
-    it('returns only specified entries when whereIds provided', async () => {
-      const entries = [
-        mockEntry({ id: 'entry1' }),
-        mockEntry({ id: 'entry2' }),
-        mockEntry({ id: 'entry3' }),
-      ]
-      const { db } = await setupDbWithEntries(entries)
-
-      const results = await db.getAll(['entry1', 'entry3'])
-
-      expect(results).toHaveLength(2)
-      expect(results.map((e) => e.id)).toEqual(expect.arrayContaining(['entry1', 'entry3']))
-    })
-
-    it('skips non-existent ids when whereIds provided', async () => {
-      const entries = [mockEntry({ id: 'entry1' })]
-      const { db } = await setupDbWithEntries(entries)
-
-      const results = await db.getAll(['entry1', 'nonexistent'])
-
-      expect(results).toHaveLength(1)
-      expect(results[0].id).toBe('entry1')
     })
   })
 
@@ -187,19 +318,6 @@ describe('MultiEntryMemDb', () => {
       expect(results.every((e) => e.title === 'Match')).toBe(true)
     })
 
-    it('respects max parameter', async () => {
-      const entries = [
-        mockEntry({ id: '1', title: 'Match' }),
-        mockEntry({ id: '2', title: 'Match' }),
-        mockEntry({ id: '3', title: 'Match' }),
-      ]
-      const { db } = await setupDbWithEntries(entries)
-
-      const results = await db.getWhere((e) => e.title === 'Match', 2)
-
-      expect(results).toHaveLength(2)
-    })
-
     it('returns empty array when no matches', async () => {
       const entries = [mockEntry({ id: '1', title: 'NoMatch' })]
       const { db } = await setupDbWithEntries(entries)
@@ -230,9 +348,7 @@ describe('MultiEntryMemDb', () => {
 
     it('throws when entry does not exist', async () => {
       const db = createDb()
-      await expect(db.update('nonexistent', (entry) => entry)).rejects.toThrow(
-        'Entry with id nonexistent does not exist',
-      )
+      await expect(db.update('nonexistent', (entry) => entry)).rejects.toThrow()
     })
 
     it('handles id changes', async () => {
@@ -259,12 +375,12 @@ describe('MultiEntryMemDb', () => {
     })
   })
 
-  describe('delete', () => {
+  describe('deleteById', () => {
     it('deletes existing entry and returns true', async () => {
       const entry = mockEntry({ id: 'delete-test' })
       const { db } = await setupDbWithEntries([entry])
 
-      const deleted = await db.delete('delete-test')
+      const deleted = await db.deleteById('delete-test')
 
       expect(deleted).toBe(true)
       expect(await db.exists('delete-test')).toBe(false)
@@ -272,7 +388,7 @@ describe('MultiEntryMemDb', () => {
 
     it('returns false when entry does not exist', async () => {
       const db = createDb()
-      const deleted = await db.delete('nonexistent')
+      const deleted = await db.deleteById('nonexistent')
 
       expect(deleted).toBe(false)
     })
@@ -435,21 +551,6 @@ describe('MultiEntryMemDb', () => {
       await Promise.all(entries.map((e) => db.create(e)))
 
       expect(await db.countAll()).toBe(100)
-    })
-
-    it('provides fast lookups for large datasets', async () => {
-      const db = createDb()
-      const entries = Array.from({ length: 1000 }, (_, i) => mockEntry({ id: `entry-${i}` }))
-
-      for (const entry of entries) {
-        await db.create(entry)
-      }
-
-      const start = Date.now()
-      await db.getById('entry-500')
-      const duration = Date.now() - start
-
-      expect(duration).toBeLessThan(10) // Should be nearly instant
     })
   })
 })

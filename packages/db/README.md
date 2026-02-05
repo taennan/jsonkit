@@ -19,61 +19,22 @@ npm install @jsonkit/db
 
 ---
 
-## Core Types
-
-### `Identifiable`
-
-```ts
-type Identifiable = { id: string }
-```
-
-All multi-entry databases require entries to have a string `id`.
-
-### `Promisable<T>`
-
-A value or a promise of a value.
-
-```ts
-type Promisable<T> = T | Promise<T>
-```
-
-### `PredicateFn<T>`
-
-Used for filtering entries.
-
-```ts
-type PredicateFn<T extends Identifiable> = (entry: T) => boolean
-```
-
-### `DeleteManyOutput`
-
-Returned by bulk delete operations.
-
-```ts
-type DeleteManyOutput = {
-  deletedIds: string[]
-  ignoredIds: string[]
-}
-```
-
----
-
 ## Multi-entry Databases
 
 Multi-entry databases manage collections of entries keyed by `id`.
 
 ### Common API (`MultiEntryDb<T>`)
 
-All multi-entry implementations expose the same async API:
+All multi-entry implementations expose the same methods:
 
 * `create(entry)`
 * `getById(id)`
 * `getByIdOrThrow(id)`
-* `getWhere(predicate, max?)`
+* `getWhere(predicate, pagination?)`
 * `getAll(ids?)`
 * `getAllIds()`
 * `update(id, updater)`
-* `delete(id)`
+* `deleteById(id)`
 * `deleteByIds(ids)`
 * `deleteWhere(predicate)`
 * `exists(id)`
@@ -222,6 +183,53 @@ const allUsers = await users.getAll()
 * Small internal services
 * Tests and mocks
 * Configuration and state persistence
+
+---
+
+## Core Types
+
+### `Identifiable`
+
+```ts
+type Identifiable = { id: string }
+```
+
+All multi-entry databases require entries to have a string `id`.
+
+### `Promisable<T>`
+
+A value or a promise of a value.
+
+```ts
+type Promisable<T> = T | Promise<T>
+```
+
+### `PredicateFn<T>`
+
+Used for filtering entries.
+
+```ts
+type PredicateFn<T extends Identifiable> = (entry: T) => boolean
+```
+
+### `PaginationInput`
+
+Used for filtering entries.
+
+```ts
+type PredicateFn<T extends Identifiable> = (entry: T) => boolean
+```
+
+### `DeleteManyOutput`
+
+Returned by bulk delete operations.
+
+```ts
+type DeleteManyOutput = {
+  deletedIds: string[]
+  ignoredIds: string[]
+}
+```
 
 ---
 

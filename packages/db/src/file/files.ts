@@ -1,5 +1,5 @@
-import type { FileMeta } from '../types'
-import { FileType } from '../types'
+import type { FileMeta } from '../common/types'
+import { FileType } from '../common/types'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as fsSync from 'fs'

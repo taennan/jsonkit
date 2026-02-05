@@ -1,33 +1,30 @@
-import { Promisable, SingleEntryDb } from '../types'
-
-export class SingleEntryMemDb<T> extends SingleEntryDb<T> {
+export class SingleEntryMemDb<T> {
   protected entry: T | null = null
 
   constructor(initialEntry: T | null = null) {
-    super()
     this.entry = initialEntry
   }
 
-  async isInited() {
+  isInited() {
     return this.entry !== null
   }
 
-  async read() {
+  read(): T {
     if (this.entry === null) throw new Error('Entry not initialized')
-    return this.entry!
+    return this.entry
   }
 
-  async write(updaterOrEntry: T | ((entry: T) => Promisable<Partial<T>>)): Promise<T> {
+  write(updaterOrEntry: T | ((entry: T) => Partial<T>)): T {
     let entry: T
 
     if (typeof updaterOrEntry === 'function') {
-      const updater = updaterOrEntry as (entry: T) => Promisable<Partial<T>>
+      const updater = updaterOrEntry as (entry: T) => Partial<T>
 
       if (this.entry === null) {
         throw new Error('Cannot update uninitialized entry. Use write(entry) to initialize first.')
       }
 
-      const updatedFields = await updater(this.entry)
+      const updatedFields = updater(this.entry)
       entry = { ...this.entry, ...updatedFields }
     } else {
       entry = updaterOrEntry
@@ -37,7 +34,7 @@ export class SingleEntryMemDb<T> extends SingleEntryDb<T> {
     return entry
   }
 
-  async delete(): Promise<void> {
+  delete() {
     this.entry = null
   }
 }

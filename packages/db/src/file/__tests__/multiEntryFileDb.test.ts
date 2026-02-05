@@ -1,4 +1,4 @@
-import type { Identifiable } from '../../types'
+import type { Identifiable } from '../../common/types'
 import { MultiEntryFileDb } from '../multiEntryFileDb'
 import * as fs from 'fs/promises'
 import * as path from 'path'
@@ -113,7 +113,7 @@ describe('MultiEntryFileDb', () => {
     })
   })
 
-  describe('get', () => {
+  describe('getById', () => {
     it('returns entry when it exists', async () => {
       const entry = mockEntry({ id: 'existing-entry' })
       const { db } = await setupDbWithEntries('get-existing', [entry])
@@ -134,6 +134,163 @@ describe('MultiEntryFileDb', () => {
       const result = await db.getById('any-id')
 
       expect(result).toBeNull()
+    })
+  })
+
+  describe('getWhere', () => {
+    it('returns all matching entries when no pagination', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'NoMatch' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'NoMatch' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-no-pagination', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match')
+
+      expect(results).toHaveLength(3)
+      expect(results.map((r) => r.id)).toEqual(['entry1', 'entry3', 'entry5'])
+    })
+
+    it('returns empty array when no entries match', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'First' }),
+        mockEntry({ id: 'entry2', title: 'Second' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-no-match', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Nonexistent')
+
+      expect(results).toEqual([])
+    })
+
+    it('returns empty array when directory is empty', async () => {
+      const { db } = await setupDbWithEntries('getwhere-empty')
+
+      const results = await db.getWhere(() => true)
+
+      expect(results).toEqual([])
+    })
+
+    it('returns first page of matching entries', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-page1', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 1 })
+
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry1', 'entry2'])
+    })
+
+    it('returns second page of matching entries', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-page2', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
+
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry3', 'entry4'])
+    })
+
+    it('returns partial page when fewer entries remain', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-partial-page', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
+
+      expect(results).toHaveLength(1)
+      expect(results[0].id).toBe('entry3')
+    })
+
+    it('returns empty array when page is beyond available entries', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-page-beyond', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 5 })
+
+      expect(results).toEqual([])
+    })
+
+    it('applies skip offset correctly', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-skip', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', {
+        take: 2,
+        page: 1,
+        skip: 1,
+      })
+
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry2', 'entry3'])
+    })
+
+    it('combines page and skip correctly', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+        mockEntry({ id: 'entry6', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-page-skip', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', {
+        take: 2,
+        page: 2,
+        skip: 1,
+      })
+
+      // page 2 with take 2 starts at index 2 (0-indexed)
+      // skip 1 adds 1, so we start at index 3
+      // we take 2 entries: entry4 and entry5
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry4', 'entry5'])
+    })
+
+    it('only counts matching entries for pagination', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'NoMatch' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'NoMatch' }),
+        mockEntry({ id: 'entry5', title: 'Match' }),
+        mockEntry({ id: 'entry6', title: 'Match' }),
+      ]
+      const { db } = await setupDbWithEntries('getwhere-mixed-pagination', entries)
+
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
+
+      expect(results).toHaveLength(2)
+      expect(results.map((r) => r.id)).toEqual(['entry5', 'entry6'])
     })
   })
 
@@ -237,7 +394,7 @@ describe('MultiEntryFileDb', () => {
       const entry = mockEntry({ id: 'delete-test' })
       const { db, dirpath } = await setupDbWithEntries('delete-existing', [entry])
 
-      const amountDeleted = await db.delete('delete-test')
+      const amountDeleted = await db.deleteById('delete-test')
       expect(amountDeleted).toBe(true)
 
       const filepath = path.join(dirpath, 'delete-test.json')
@@ -250,7 +407,7 @@ describe('MultiEntryFileDb', () => {
     it('returns false when entry does not exist', async () => {
       const { db } = await setupDbWithEntries('delete-nonexistent')
 
-      const amountDeleted = await db.delete('nonexistent')
+      const amountDeleted = await db.deleteById('nonexistent')
       expect(amountDeleted).toBe(false)
     })
   })

@@ -2,24 +2,22 @@ import {
   Identifiable,
   DeleteManyOutput,
   Promisable,
-  PredicateFn,
   JsonEntryParser,
   MultiEntryFileDbOptions,
   MultiEntryDb,
-} from '../types'
+} from '../common'
 import { Files } from './files'
 import * as path from 'path'
 
 export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
+  protected readonly dirpath: string
   protected readonly files: Files
   protected readonly parser: JsonEntryParser<T>
   readonly noPathlikeIds: boolean
 
-  constructor(
-    protected readonly dirpath: string,
-    options?: MultiEntryFileDbOptions<T>,
-  ) {
+  constructor(dirpath: string, options?: MultiEntryFileDbOptions<T>) {
     super()
+    this.dirpath = dirpath
     this.files = new Files()
     this.parser = options?.parser ?? JSON
     this.noPathlikeIds = options?.noPathlikeIds ?? true
@@ -31,62 +29,35 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
   }
 
   async getById(id: T['id']): Promise<T | null> {
-    return await this.readEntry(id)
-  }
+    if (!this.isIdValid(id)) throw new Error(`Invalid id: ${id}`)
 
-  async getByIdOrThrow(id: T['id']): Promise<T> {
-    const entry = await this.readEntry(id)
-    if (!entry) {
-      throw new Error('Entry with id ' + id + ' does not exist')
-    }
-    return entry
-  }
-
-  async getWhere(predicate: PredicateFn<T>, max?: number): Promise<T[]> {
-    const entries = await this.getAll()
-    return entries.filter(predicate).slice(0, max)
-  }
-
-  async getAll(whereIds?: T['id'][]): Promise<T[]> {
-    const ids = whereIds === undefined ? await this.getAllIds() : whereIds
-    const entries: T[] = []
-
-    for (const id of ids) {
-      const entry = await this.readEntry(id)
-      if (entry) entries.push(entry)
-    }
-
-    return entries
-  }
-
-  async getAllIds(): Promise<T['id'][]> {
     try {
-      const entries = await this.files.list(this.dirpath)
-      return entries.filter((name) => name.endsWith('.json')).map((name) => name.slice(0, -5)) // Remove .json extension
-    } catch {
-      // Directory might not exist
-      return []
+      const filepath = this.getFilePath(id)
+      const text = await this.files.read(filepath)
+      const entry = this.parser.parse(text)
+      return entry
+    } catch (error) {
+      console.error('Failed to read entry', error)
+      // File doesn't exist or invalid JSON
+      return null
     }
   }
 
   async update(id: T['id'], updater: (entry: T) => Promisable<Partial<T>>): Promise<T> {
-    const entry = await this.readEntry(id)
-    if (!entry) {
-      throw new Error('Entry with id ' + id + ' does not exist')
-    }
+    const entry = await this.getByIdOrThrow(id)
 
     const updatedEntryFields = await updater(entry)
     const updatedEntry = { ...entry, ...updatedEntryFields }
     await this.writeEntry(updatedEntry)
 
     if (updatedEntry.id !== id) {
-      await this.delete(id)
+      await this.deleteById(id)
     }
 
     return updatedEntry
   }
 
-  async delete(id: T['id']): Promise<boolean> {
+  async deleteById(id: T['id']): Promise<boolean> {
     try {
       const filepath = this.getFilePath(id)
       await this.files.delete(filepath, { force: false })
@@ -101,59 +72,12 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     return this.deleteWhere((entry) => ids.includes(entry.id))
   }
 
-  async deleteWhere(predicate: PredicateFn<T>): Promise<DeleteManyOutput> {
-    const deletedIds: T['id'][] = []
-    const ignoredIds: T['id'][] = []
-
-    for await (const entry of this.iterEntries()) {
-      if (!predicate(entry)) continue
-
-      const didDelete = await this.delete(entry.id)
-      if (didDelete) {
-        deletedIds.push(entry.id)
-      } else {
-        ignoredIds.push(entry.id)
-      }
-    }
-
-    return { deletedIds, ignoredIds }
-  }
-
   async destroy() {
     await this.files.delete(this.dirpath)
   }
 
-  async exists(id: T['id']): Promise<boolean> {
-    const entry = await this.readEntry(id)
-    return entry !== null
-  }
-
-  async countAll(): Promise<number> {
-    const ids = await this.getAllIds()
-    return ids.length
-  }
-
-  async countWhere(predicate: PredicateFn<T>): Promise<number> {
-    return (await this.getWhere(predicate)).length
-  }
-
   protected getFilePath(id: T['id']) {
     return path.join(this.dirpath, `${id}.json`)
-  }
-
-  protected async readEntry(id: T['id']) {
-    if (!this.isIdValid(id)) throw new Error(`Invalid id: ${id}`)
-
-    try {
-      const filepath = this.getFilePath(id)
-      const text = await this.files.read(filepath)
-      const entry = this.parser.parse(text)
-      return entry
-    } catch (error) {
-      console.error('Failed to read entry', error)
-      // File doesn't exist or invalid JSON
-      return null
-    }
   }
 
   protected async writeEntry(entry: T) {
@@ -174,10 +98,19 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
   }
 
   protected async *iterEntries() {
-    const ids = await this.getAllIds()
-    for (const id of ids) {
-      const entry = await this.readEntry(id)
+    for await (const id of this.iterIds()) {
+      const entry = await this.getById(id)
       if (entry) yield entry
+    }
+  }
+
+  protected async *iterIds() {
+    const filenames = await this.files.list(this.dirpath)
+    for (const filename of filenames) {
+      if (!filename.endsWith('.json')) continue
+
+      const id = filename.replace(/\.json$/, '')
+      if (this.isIdValid(id)) yield id
     }
   }
 }
