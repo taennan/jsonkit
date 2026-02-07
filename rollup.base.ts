@@ -1,6 +1,13 @@
+import type { RollupOptions } from 'rollup'
 import typescript from '@rollup/plugin-typescript'
 
-export function rollupConfig(packageJson = {}) {
+type RollupConfigInput = {
+  cjsFile?: string
+  esmFile?: string
+  tsconfig?: string
+}
+
+export function rollupConfig(packageJson: RollupConfigInput = {}): RollupOptions {
   const {
     cjsFile = 'dist/cjs/index.cjs',
     esmFile = 'dist/esm/index.js',
@@ -23,7 +30,8 @@ export function rollupConfig(packageJson = {}) {
     ],
     plugins: [
       typescript({
-        declaration: false,
+        declaration: true,
+        declarationDir: 'dist/types',
         tsconfig,
       }),
     ],

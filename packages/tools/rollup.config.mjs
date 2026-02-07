@@ -1,4 +1,4 @@
-import { rollupConfig } from '../../rollup.base.mjs'
+import { rollupConfig } from '../../rollup.base.js'
 
 const CONFIG = rollupConfig()
 
