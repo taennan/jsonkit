@@ -1,24 +1,8 @@
-/*
-import { rollupConfig } from '../../rollup.base.ts'
-
-const CONFIG = rollupConfig()
-
-export default CONFIG
-*/
-
-//import type { RollupOptions } from 'rollup'
 import typescript from '@rollup/plugin-typescript'
 import rollupDelete from 'rollup-plugin-delete'
 import { dts } from 'rollup-plugin-dts'
 
-type RollupConfigInput = {
-  input?: string
-  cjsFile?: string
-  esmFile?: string
-  tsconfig?: string
-}
-
-export function rollupConfig(packageJson: RollupConfigInput = {}) {
+export function rollupConfig(packageJson = {}) {
   const {
     input = 'src/index.ts',
     cjsFile = 'dist/cjs/index.cjs',

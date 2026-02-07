@@ -1,6 +1,6 @@
 {
   "name": "@jsonkit/tools",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Json parsing and patching tools",
   "license": "MIT",
   "author": "taennan <taennan.dev@protonmail.com>",
@@ -15,28 +15,29 @@
     "parsing"
   ],
   "type": "module",
-  "main": "dist/cjs/index.cjs",
   "module": "dist/esm/index.js",
-  "types": "dist/types/index.d.ts",
+  "main": "dist/cjs/index.cjs",
+  "types": "dist/index.d.ts",
   "exports": {
+    "./package.json": "./package.json",
     ".": {
       "import": {
-        "types": "./dist/types/index.d.ts",
-        "default": "./dist/esm/index.js"
+        "default": "./dist/esm/index.js",
+        "types": "./dist/index.d.ts"
       },
       "require": {
-        "types": "./dist/types/index.d.ts",
-        "default": "./dist/cjs/index.cjs"
+        "default": "./dist/cjs/index.cjs",
+        "types": "./dist/index.d.ts"
       }
     }
   },
   "scripts": {
-    "build": "npm run clean && npm run build:bundle && npm run build:types",
+    "build": "npm run clean && npm run build:bundle",
     "clean": "rm -rf dist",
-    "check": "tsc --noEmit",
-    "build:bundle": "npx rollup -c --bundleConfigAsCjs",
-    "build:types": "tsc -p tsconfig.json",
-    "fmt": "prettier --write .",
+    "build:bundle": "npx rollup -c",
+    "fix": "npm run fix:types && npm run fix:format",
+    "fix:types": "tsc --noEmit",
+    "fix:format": "prettier --write . --config ../../.prettierrc --ignore-path ../../.prettierignore",
     "test": "jest"
   },
   "files": [
