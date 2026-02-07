@@ -11,15 +11,14 @@ import typescript from '@rollup/plugin-typescript'
 import rollupDelete from 'rollup-plugin-delete'
 import { dts } from 'rollup-plugin-dts'
 
-/*
 type RollupConfigInput = {
+  input?: string
   cjsFile?: string
   esmFile?: string
   tsconfig?: string
 }
-*/
 
-export function rollupConfig(packageJson = {}) {
+export function rollupConfig(packageJson: RollupConfigInput = {}) {
   const {
     input = 'src/index.ts',
     cjsFile = 'dist/cjs/index.cjs',
@@ -63,7 +62,13 @@ export function rollupConfig(packageJson = {}) {
         dts(),
         rollupDelete({
           hook: 'buildEnd',
-          targets: ['dist/cjs/**/*', 'dist/esm/**/*', '!dist/cjs/**/*.cjs', '!dist/esm/**/*.js'],
+          targets: [
+            'dist/cjs/**/*',
+            'dist/esm/**/*',
+            '!dist/**/*.cjs',
+            '!dist/**/*.js',
+            '!dist/**/*.map',
+          ],
         }),
       ],
     },

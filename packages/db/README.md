@@ -4,8 +4,8 @@
 
 The package exposes two core concepts:
 
-* **Single-entry databases** – manage exactly one JSON-serializable object.
-* **Multi-entry databases** – manage collections of identifiable records keyed by an `id`.
+- **Single-entry databases** – manage exactly one JSON-serializable object.
+- **Multi-entry databases** – manage collections of identifiable records keyed by an `id`.
 
 Both concepts are available in **file-backed** and **in-memory** variants.
 
@@ -27,20 +27,20 @@ Multi-entry databases manage collections of entries keyed by `id`.
 
 All multi-entry implementations expose the same methods:
 
-* `create(entry)`
-* `getById(id)`
-* `getByIdOrThrow(id)`
-* `getWhere(predicate, pagination?)`
-* `getAll(ids?)`
-* `getAllIds()`
-* `update(id, updater)`
-* `deleteById(id)`
-* `deleteByIds(ids)`
-* `deleteWhere(predicate)`
-* `exists(id)`
-* `countAll()`
-* `countWhere(predicate)`
-* `destroy()`
+- `create(entry)`
+- `getById(id)`
+- `getByIdOrThrow(id)`
+- `getWhere(predicate, pagination?)`
+- `getAll(ids?)`
+- `getAllIds()`
+- `update(id, updater)`
+- `deleteById(id)`
+- `deleteByIds(ids)`
+- `deleteWhere(predicate)`
+- `exists(id)`
+- `countAll()`
+- `countWhere(predicate)`
+- `destroy()`
 
 Updates are **partial merges**, and changing an entry’s `id` during an update is supported.
 
@@ -58,9 +58,9 @@ const db = new MultiEntryFileDb<User>('./data/users')
 
 #### Behavior
 
-* Each entry is stored as `<id>.json` in the provided directory.
-* The directory is created implicitly as files are written.
-* IDs are validated to prevent path traversal by default.
+- Each entry is stored as `<id>.json` in the provided directory.
+- The directory is created implicitly as files are written.
+- IDs are validated to prevent path traversal by default.
 
 #### Constructor
 
@@ -77,9 +77,9 @@ new MultiEntryFileDb<T>(dirpath, options?)
 
 #### Notes
 
-* Failed reads (missing file or invalid JSON) return `null`.
-* `destroy()` deletes the entire directory.
-* Intended for development, prototyping, and small datasets.
+- Failed reads (missing file or invalid JSON) return `null`.
+- `destroy()` deletes the entire directory.
+- Intended for development, prototyping, and small datasets.
 
 ---
 
@@ -95,9 +95,9 @@ const db = new MultiEntryMemDb<User>()
 
 #### Behavior
 
-* Fast, ephemeral storage.
-* Ideal for tests and short-lived processes.
-* `destroy()` clears all entries.
+- Fast, ephemeral storage.
+- Ideal for tests and short-lived processes.
+- `destroy()` clears all entries.
 
 ---
 
@@ -107,10 +107,10 @@ Single-entry databases manage **exactly one value**, often used for configuratio
 
 ### Common API (`SingleEntryDb<T>`)
 
-* `isInited()`
-* `read()`
-* `write(entry | updater)`
-* `delete()`
+- `isInited()`
+- `read()`
+- `write(entry | updater)`
+- `delete()`
 
 `write` supports either replacing the entry or partially updating it via an updater function.
 
@@ -128,9 +128,9 @@ const db = new SingleEntryFileDb<AppConfig>('./config.json')
 
 #### Behavior
 
-* Reads and writes a single JSON file.
-* `isInited()` checks file existence.
-* `read()` throws if the file does not exist.
+- Reads and writes a single JSON file.
+- `isInited()` checks file existence.
+- `read()` throws if the file does not exist.
 
 #### Constructor
 
@@ -138,7 +138,7 @@ const db = new SingleEntryFileDb<AppConfig>('./config.json')
 new SingleEntryFileDb<T>(filepath, parser?)
 ```
 
-* `parser` defaults to `JSON`.
+- `parser` defaults to `JSON`.
 
 ---
 
@@ -154,9 +154,9 @@ const db = new SingleEntryMemDb<AppConfig>()
 
 #### Behavior
 
-* Optional initial value.
-* `read()` throws if uninitialized.
-* `delete()` resets the entry to `null`.
+- Optional initial value.
+- `read()` throws if uninitialized.
+- `delete()` resets the entry to `null`.
 
 ---
 
@@ -178,11 +178,11 @@ const allUsers = await users.getAll()
 
 ## Use Cases
 
-* Rapid application prototyping
-* CLI tools
-* Small internal services
-* Tests and mocks
-* Configuration and state persistence
+- Rapid application prototyping
+- CLI tools
+- Small internal services
+- Tests and mocks
+- Configuration and state persistence
 
 ---
 
@@ -235,10 +235,10 @@ type DeleteManyOutput = {
 
 ## Non-goals
 
-* Concurrency control
-* High-performance querying
-* Large datasets
-* ACID guarantees
+- Concurrency control
+- High-performance querying
+- Large datasets
+- ACID guarantees
 
 For these, a dedicated database is recommended.
 

@@ -1,2 +1,5 @@
 node_modules
+.rollup.cache
+
 ./packages/**/dist
+./packages/**/build
