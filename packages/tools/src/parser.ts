@@ -1,10 +1,10 @@
-import type { JsonPath } from './types'
+import type { JsonPath, JsonPrimitiveValue } from './types'
 import { JsonPatcher } from './patcher'
 import { JsonPatchBuilder } from './builder'
 import { JsonPathJoiner } from './pathJoiner'
 import fastJsonPatch from 'fast-json-patch'
 
-export enum JsonFieldConversion {
+export enum JsonFieldConversionPreset {
   Date = 'date',
   Int = 'int',
   Float = 'float',
@@ -13,9 +13,14 @@ export enum JsonFieldConversion {
   //BigInt = 'bigInt',
 }
 
-type ParseField = {
+type JsonFieldConversionFn<T> = (input: JsonPrimitiveValue) => T
+
+type JsonFieldConversion<T> = JsonFieldConversionFn<T> | JsonFieldConversionPreset
+
+type ParseField<T = any> = {
   path: JsonPath
-  conversion: JsonFieldConversion
+  conversion: JsonFieldConversion<T>
+  convertNullsByFn?: boolean
 }
 
 // NOTE: The conversion of Dates to and from strings is a little problematic. Any strings that are not ISO formatted will not have the milliseconds precision.
@@ -28,11 +33,11 @@ export class JsonParser {
 
     let patchBuilder = new JsonPatchBuilder()
     for (const parseField of this.parsedFields) {
-      const { path, conversion } = parseField
+      const { path, conversion, convertNullsByFn = false } = parseField
       const joinedPath = new JsonPathJoiner().join(path)
 
       const value = fastJsonPatch.getValueByPointer(raw, joinedPath)
-      const converted = this.convertValue(value, conversion)
+      const converted = this.convertValue(value, conversion, convertNullsByFn)
       patchBuilder = patchBuilder.replace(joinedPath, converted)
     }
 
@@ -46,20 +51,30 @@ export class JsonParser {
     return patchResult.data
   }
 
-  protected convertValue(value: unknown, conversion: JsonFieldConversion) {
-    if (value === undefined || value === null) return value
+  protected convertValue<T>(
+    value: JsonPrimitiveValue,
+    conversion: JsonFieldConversion<T>,
+    convertNullsByFn: boolean,
+  ) {
+    const isFnConversion = typeof conversion === 'function'
+
+    if (value === undefined) return value
+    if (!isFnConversion && value === null) return value
+    if (isFnConversion && value === null && !convertNullsByFn) return value
 
     const isString = typeof value === 'string'
 
-    if (conversion === JsonFieldConversion.Date && isString) {
+    if (isFnConversion) {
+      return conversion(value)
+    } else if (conversion === JsonFieldConversionPreset.Date && isString) {
       return new Date(value)
-    } else if (conversion === JsonFieldConversion.String) {
+    } else if (conversion === JsonFieldConversionPreset.String) {
       return String(value)
-    } else if (conversion === JsonFieldConversion.Int && isString) {
+    } else if (conversion === JsonFieldConversionPreset.Int && isString) {
       return parseInt(value)
-    } else if (conversion === JsonFieldConversion.Float && isString) {
+    } else if (conversion === JsonFieldConversionPreset.Float && isString) {
       return parseFloat(value)
-    } else if (conversion === JsonFieldConversion.Boolean) {
+    } else if (conversion === JsonFieldConversionPreset.Boolean) {
       if (isString && value === 'false') return false
       return Boolean(value)
     }

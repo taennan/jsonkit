@@ -1,6 +1,6 @@
 {
   "name": "@jsonkit/tools",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "description": "Json parsing and patching tools",
   "license": "MIT",
   "author": "taennan <taennan.dev@protonmail.com>",
@@ -38,7 +38,7 @@
     "fix": "npm run fix:types && npm run fix:format",
     "fix:types": "tsc --noEmit",
     "fix:format": "prettier --write . --config ../../.prettierrc --ignore-path ../../.prettierignore",
-    "test": "jest"
+    "test": "vitest"
   },
   "files": [
     "dist"

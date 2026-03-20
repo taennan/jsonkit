@@ -1,9 +1,10 @@
+import { NotFoundError } from './errors'
 import type {
   Identifiable,
   DeleteManyOutput,
   PaginationInput,
   PredicateFn,
-  Promisable,
+  UpdaterFn,
 } from './types'
 
 export abstract class MultiEntryDb<T extends Identifiable> {
@@ -11,20 +12,31 @@ export abstract class MultiEntryDb<T extends Identifiable> {
 
   abstract getById(id: T['id']): Promise<T | null>
 
-  abstract update(id: T['id'], updater: (entry: T) => Promisable<Partial<T>>): Promise<T>
+  abstract update(id: T['id'], updater: UpdaterFn<T>): Promise<T>
 
   abstract deleteById(id: T['id']): Promise<boolean>
 
   abstract destroy(): Promise<void>
 
-  protected abstract iterEntries(): AsyncIterable<T>
+  abstract iterEntries(): AsyncIterable<T>
 
-  protected abstract iterIds(): AsyncIterable<T['id']>
+  abstract iterIds(): AsyncIterable<T['id']>
 
   async getByIdOrThrow(id: T['id']): Promise<T> {
     const entry = await this.getById(id)
-    if (!entry) throw new Error(`Entry with id '${id}' does not exist`)
+    if (!entry) throw new NotFoundError(`Entry with id '${id}' does not exist`)
     return entry
+  }
+
+  async getFirstWhere(predicate: PredicateFn<T>): Promise<T | null> {
+    const matches = await this.getWhere(predicate, { page: 0, take: 1 })
+    return matches.at(0) ?? null
+  }
+
+  async getFirstWhereOrThrow(predicate: PredicateFn<T>): Promise<T | null> {
+    const match = await this.getFirstWhere(predicate)
+    if (!match) throw new NotFoundError('No entry matches predicate')
+    return match
   }
 
   async getWhere(predicate: PredicateFn<T>, pagination?: PaginationInput): Promise<T[]> {

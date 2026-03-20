@@ -1,3 +1,4 @@
+import { UninitError } from '../../common'
 import { SingleEntryMemDb } from '../singleEntryMemDb'
 
 type MockEntry = {
@@ -16,72 +17,72 @@ const mockEntry = (data: Partial<MockEntry> = {}): MockEntry => ({
 
 describe('SingleEntryMemDb', () => {
   describe('constructor', () => {
-    it('should create instance with null entry by default', () => {
+    it('should create instance with null entry by default', async () => {
       const db = new SingleEntryMemDb<MockEntry>()
 
       expect(db).toBeInstanceOf(SingleEntryMemDb)
-      expect(db.isInited()).toBe(false)
+      expect(await db.isInited()).toBe(false)
     })
 
-    it('should create instance with initial entry when provided', () => {
+    it('should create instance with initial entry when provided', async () => {
       const initialEntry = mockEntry({ id: 'init', title: 'Initial' })
       const db = new SingleEntryMemDb<MockEntry>(initialEntry)
 
-      expect(db.isInited()).toBe(true)
-      expect(db.read()).toEqual(initialEntry)
+      expect(await db.isInited()).toBe(true)
+      expect(await db.read()).toEqual(initialEntry)
     })
 
-    it('should handle null as explicit initial entry', () => {
+    it('should handle null as explicit initial entry', async () => {
       const db = new SingleEntryMemDb<MockEntry>(null)
 
-      expect(db.isInited()).toBe(false)
+      expect(await db.isInited()).toBe(false)
     })
   })
 
   describe('isInited', () => {
-    it('should return false when entry is not initialized', () => {
+    it('should return false when entry is not initialized', async () => {
       const db = new SingleEntryMemDb<MockEntry>()
 
-      expect(db.isInited()).toBe(false)
+      expect(await db.isInited()).toBe(false)
     })
 
-    it('should return true after writing entry', () => {
+    it('should return true after writing entry', async () => {
       const db = new SingleEntryMemDb<MockEntry>()
       db.write(mockEntry())
 
-      expect(db.isInited()).toBe(true)
+      expect(await db.isInited()).toBe(true)
     })
 
-    it('should return false after deleting entry', () => {
+    it('should return false after deleting entry', async () => {
       const db = new SingleEntryMemDb<MockEntry>(mockEntry())
       db.delete()
 
-      expect(db.isInited()).toBe(false)
+      expect(await db.isInited()).toBe(false)
     })
   })
 
   describe('read', () => {
-    it('should return entry when initialized', () => {
+    it('should return entry when initialized', async () => {
       const entry = mockEntry({ id: 'test', title: 'Test Entry' })
       const db = new SingleEntryMemDb<MockEntry>(entry)
 
-      const result = db.read()
+      const result = await db.read()
 
       expect(result).toEqual(entry)
     })
 
-    it('should throw error when entry is not initialized', () => {
+    it('should throw error when entry is not initialized', async () => {
       const db = new SingleEntryMemDb<MockEntry>()
 
-      expect(db.read()).rejects.toThrow('Entry not initialized')
+      expect(db.read()).rejects.toThrow(UninitError)
     })
 
-    it('should return same reference for multiple reads', () => {
+    it('should return same reference for multiple reads', async () => {
       const entry = mockEntry()
       const db = new SingleEntryMemDb<MockEntry>(entry)
 
-      const read1 = db.read()
-      const read2 = db.read()
+      const read1 = await db.read()
+      const read2 = await db.read()
 
       expect(read1).toBe(read2)
     })
@@ -89,43 +90,43 @@ describe('SingleEntryMemDb', () => {
 
   describe('write', () => {
     describe('with complete entry', () => {
-      it('should write new entry when not initialized', () => {
+      it('should write new entry when not initialized', async () => {
         const db = new SingleEntryMemDb<MockEntry>()
         const entry = mockEntry({ id: 'new', title: 'New Entry' })
 
-        const result = db.write(entry)
+        const result = await db.write(entry)
 
         expect(result).toEqual(entry)
-        expect(db.read()).toEqual(entry)
+        expect(await db.read()).toEqual(entry)
       })
 
-      it('should overwrite existing entry', () => {
+      it('should overwrite existing entry', async () => {
         const initialEntry = mockEntry({ id: 'old', title: 'Old' })
         const db = new SingleEntryMemDb<MockEntry>(initialEntry)
         const newEntry = mockEntry({ id: 'new', title: 'New' })
 
-        const result = db.write(newEntry)
+        const result = await db.write(newEntry)
 
         expect(result).toEqual(newEntry)
-        expect(db.read()).toEqual(newEntry)
+        expect(await db.read()).toEqual(newEntry)
       })
 
-      it('should return the written entry', () => {
+      it('should return the written entry', async () => {
         const db = new SingleEntryMemDb<MockEntry>()
         const entry = mockEntry()
 
-        const result = db.write(entry)
+        const result = await db.write(entry)
 
         expect(result).toEqual(entry)
       })
     })
 
     describe('with updater function', () => {
-      it('should update existing entry using updater', () => {
+      it('should update existing entry using updater', async () => {
         const initialEntry = mockEntry({ id: 'test', title: 'Original', count: 5 })
         const db = new SingleEntryMemDb<MockEntry>(initialEntry)
 
-        const result = db.write((entry) => ({
+        const result = await db.write((entry) => ({
           title: 'Updated',
           count: entry.count + 1,
         }))
@@ -138,12 +139,10 @@ describe('SingleEntryMemDb', () => {
       it('should throw when updating uninitialized entry', () => {
         const db = new SingleEntryMemDb<MockEntry>()
 
-        expect(db.write(() => ({ title: 'Updated' }))).rejects.toThrow(
-          'Cannot update uninitialized entry',
-        )
+        expect(db.write(() => ({ title: 'Updated' }))).rejects.toThrow(UninitError)
       })
 
-      it('should merge updater result with existing entry', () => {
+      it('should merge updater result with existing entry', async () => {
         const initialEntry = mockEntry({
           id: 'test',
           title: 'Original',
@@ -152,27 +151,27 @@ describe('SingleEntryMemDb', () => {
         })
         const db = new SingleEntryMemDb<MockEntry>(initialEntry)
 
-        const result = db.write(() => ({ title: 'Updated' }))
+        const result = await db.write(() => ({ title: 'Updated' }))
 
         expect(result.title).toBe('Updated')
         expect(result.count).toBe(5)
         expect(result.metadata).toEqual({ key: 'value' })
       })
 
-      it('should handle updater that returns empty object', () => {
+      it('should handle updater that returns empty object', async () => {
         const initialEntry = mockEntry({ title: 'Original' })
         const db = new SingleEntryMemDb<MockEntry>(initialEntry)
 
-        const result = db.write(() => ({}))
+        const result = await db.write(() => ({}))
 
         expect(result).toEqual(initialEntry)
       })
 
-      it('should allow updater to change all fields', () => {
+      it('should allow updater to change all fields', async () => {
         const initialEntry = mockEntry({ id: 'old', title: 'Old', count: 1 })
         const db = new SingleEntryMemDb<MockEntry>(initialEntry)
 
-        const result = db.write(() => ({
+        const result = await db.write(() => ({
           id: 'new',
           title: 'New',
           count: 99,
@@ -186,59 +185,59 @@ describe('SingleEntryMemDb', () => {
   })
 
   describe('delete', () => {
-    it('should delete initialized entry', () => {
+    it('should delete initialized entry', async () => {
       const db = new SingleEntryMemDb<MockEntry>(mockEntry())
 
-      db.delete()
+      await db.delete()
 
-      expect(db.isInited()).toBe(false)
-      expect(db.read()).rejects.toThrow('Entry not initialized')
+      expect(await db.isInited()).toBe(false)
+      expect(db.read()).rejects.toThrow(UninitError)
     })
 
-    it('should be idempotent on uninitialized entry', () => {
+    it('should be idempotent on uninitialized entry', async () => {
       const db = new SingleEntryMemDb<MockEntry>()
 
-      db.delete()
-      db.delete()
+      await db.delete()
+      await db.delete()
 
-      expect(db.isInited()).toBe(false)
+      expect(await db.isInited()).toBe(false)
     })
 
-    it('should allow writing after deletion', () => {
+    it('should allow writing after deletion', async () => {
       const db = new SingleEntryMemDb<MockEntry>(mockEntry())
 
-      db.delete()
+      await db.delete()
       const newEntry = mockEntry({ title: 'After Delete' })
-      db.write(newEntry)
+      await db.write(newEntry)
 
-      expect(db.read()).toEqual(newEntry)
+      expect(await db.read()).toEqual(newEntry)
     })
   })
 
   describe('edge cases and complex scenarios', () => {
-    it('should handle rapid writes', () => {
+    it('should handle rapid writes', async () => {
       const db = new SingleEntryMemDb<MockEntry>()
 
-      db.write(mockEntry({ count: 1 }))
-      db.write(mockEntry({ count: 2 }))
-      db.write(mockEntry({ count: 3 }))
+      await db.write(mockEntry({ count: 1 }))
+      await db.write(mockEntry({ count: 2 }))
+      await db.write(mockEntry({ count: 3 }))
 
-      const result = db.read()
+      const result = await db.read()
       expect(result.count).toBe(3)
     })
 
-    it('should handle write-delete-write cycle', () => {
+    it('should handle write-delete-write cycle', async () => {
       const db = new SingleEntryMemDb<MockEntry>()
 
-      db.write(mockEntry({ title: 'First' }))
-      db.delete()
-      db.write(mockEntry({ title: 'Second' }))
+      await db.write(mockEntry({ title: 'First' }))
+      await db.delete()
+      await db.write(mockEntry({ title: 'Second' }))
 
-      const result = db.read()
+      const result = await db.read()
       expect(result.title).toBe('Second')
     })
 
-    it('should maintain data integrity with complex objects', () => {
+    it('should maintain data integrity with complex objects', async () => {
       const complexEntry = {
         id: 'complex',
         title: 'Complex Entry',
@@ -254,39 +253,39 @@ describe('SingleEntryMemDb', () => {
       }
       const db = new SingleEntryMemDb<MockEntry>(complexEntry)
 
-      const result = db.read()
+      const result = await db.read()
 
       expect(result).toEqual(complexEntry)
       expect(result.metadata?.nested).toEqual({ deep: { value: 'test' } })
     })
 
-    it('should handle concurrent read operations', () => {
+    it('should handle concurrent read operations', async () => {
       const entry = mockEntry({ title: 'Concurrent' })
       const db = new SingleEntryMemDb<MockEntry>(entry)
 
-      const results = [db.read(), db.read(), db.read()]
+      const results = await Promise.all([db.read(), db.read(), db.read()])
 
       results.forEach((result) => {
         expect(result).toEqual(entry)
       })
     })
 
-    it('should handle updater that accesses current entry multiple times', () => {
+    it('should handle updater that accesses current entry multiple times', async () => {
       const db = new SingleEntryMemDb<MockEntry>(mockEntry({ count: 5 }))
 
-      db.write((entry) => ({
+      await db.write((entry) => ({
         count: entry.count * 2 + entry.count,
         title: `Count is ${entry.count}`,
       }))
 
-      const result = db.read()
+      const result = await db.read()
       expect(result.count).toBe(15)
       expect(result.title).toBe('Count is 5')
     })
   })
 
   describe('type safety', () => {
-    it('should maintain type information', () => {
+    it('should maintain type information', async () => {
       type TypedEntry = {
         id: string
         value: number
@@ -299,7 +298,7 @@ describe('SingleEntryMemDb', () => {
         flag: true,
       })
 
-      const result = db.read()
+      const result = await db.read()
 
       // TypeScript should enforce these types
       expect(typeof result.id).toBe('string')

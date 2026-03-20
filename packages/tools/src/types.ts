@@ -1,4 +1,5 @@
 export type JsonKey = string | number
+export type JsonPrimitiveValue = string | number | boolean | null | undefined
 export type JsonPath = JsonKey | JsonKey[]
 
 export enum JsonPatchOperationType {
