@@ -31,6 +31,8 @@ All multi-entry implementations expose the same methods:
 - `getById(id)`
 - `getByIdOrThrow(id)`
 - `getWhere(predicate, pagination?)`
+- `getFirstWhere(predicate)`
+- `getFirstWhereOrThrow(predicate)`
 - `getAll(ids?)`
 - `getAllIds()`
 - `update(id, updater)`

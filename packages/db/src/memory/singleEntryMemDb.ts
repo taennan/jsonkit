@@ -1,28 +1,30 @@
-export class SingleEntryMemDb<T> {
+import { JsonEntryParser, SingleEntryDb, UninitError, UpdaterFn } from '../common'
+import { SingleEntryFileDb } from '../file/singleEntryFileDb'
+
+export class SingleEntryMemDb<T> extends SingleEntryDb<T> {
   protected entry: T | null = null
 
   constructor(initialEntry: T | null = null) {
+    super()
     this.entry = initialEntry
   }
 
-  isInited() {
+  async isInited() {
     return this.entry !== null
   }
 
-  read(): T {
-    if (this.entry === null) throw new Error('Entry not initialized')
+  async read() {
+    if (this.entry === null) throw new UninitError()
     return this.entry
   }
 
-  write(updaterOrEntry: T | ((entry: T) => Partial<T>)): T {
+  async write(updaterOrEntry: T | UpdaterFn<T>) {
     let entry: T
 
     if (typeof updaterOrEntry === 'function') {
       const updater = updaterOrEntry as (entry: T) => Partial<T>
 
-      if (this.entry === null) {
-        throw new Error('Cannot update uninitialized entry. Use write(entry) to initialize first.')
-      }
+      if (this.entry === null) throw new UninitError()
 
       const updatedFields = updater(this.entry)
       entry = { ...this.entry, ...updatedFields }
@@ -34,7 +36,18 @@ export class SingleEntryMemDb<T> {
     return entry
   }
 
-  delete() {
+  async delete() {
     this.entry = null
+  }
+
+  async persist(filepath: string) {
+    const fileDb = new SingleEntryFileDb<T>(filepath)
+    await fileDb.write(await this.read())
+  }
+
+  async load(filepath: string, parser?: JsonEntryParser<T>) {
+    const fileDb = new SingleEntryFileDb<T>(filepath, parser)
+    const persistedEntry = await fileDb.read()
+    this.write(persistedEntry)
   }
 }

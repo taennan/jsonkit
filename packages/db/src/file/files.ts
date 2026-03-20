@@ -4,6 +4,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as fsSync from 'fs'
 import * as readline from 'readline'
+import { ConflictError, FileIoError } from '../common'
 
 type ListOptions = {
   depth?: number
@@ -41,7 +42,7 @@ export class Files {
 
     // Check if destination exists and handle overwrite
     if (!overwrite && (await this.exists(destinationPath))) {
-      throw new Error(`Destination '${destinationPath}' already exists`)
+      throw new FileIoError(`Destination '${destinationPath}' already exists`)
     }
 
     const sourceStats = await fs.stat(sourcePath)
@@ -55,7 +56,7 @@ export class Files {
 
     if (sourceStats.isDirectory()) {
       if (!recursive) {
-        throw new Error(`'${sourcePath}' is a directory (use recursive option)`)
+        throw new FileIoError(`'${sourcePath}' is a directory (use recursive option)`)
       }
       await this.copyRecursive(sourcePath, destinationPath)
     }
@@ -213,7 +214,7 @@ export class Files {
         type: FileType.File,
       }
 
-    throw new Error(`File at ${filepath} is not normal file or directory`)
+    throw new FileIoError(`File at ${filepath} is not normal file or directory`)
   }
 
   async list(dirpath: string, options?: ListOptions) {

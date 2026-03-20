@@ -5,6 +5,7 @@ import {
   JsonEntryParser,
   MultiEntryFileDbOptions,
   MultiEntryDb,
+  InvalidIdError,
 } from '../common'
 import { Files } from './files'
 import * as path from 'path'
@@ -29,7 +30,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
   }
 
   async getById(id: T['id']): Promise<T | null> {
-    if (!this.isIdValid(id)) throw new Error(`Invalid id: ${id}`)
+    if (!this.isIdValid(id)) throw new InvalidIdError(id)
 
     try {
       const filepath = this.getFilePath(id)
@@ -81,7 +82,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
   }
 
   protected async writeEntry(entry: T) {
-    if (!this.isIdValid(entry.id)) throw new Error(`Invalid id: ${entry.id}`)
+    if (!this.isIdValid(entry.id)) throw new InvalidIdError(entry.id)
 
     const filepath = this.getFilePath(entry.id)
     await this.files.write(filepath, JSON.stringify(entry, null, 2))
@@ -97,14 +98,14 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     return true
   }
 
-  protected async *iterEntries() {
+  async *iterEntries() {
     for await (const id of this.iterIds()) {
       const entry = await this.getById(id)
       if (entry) yield entry
     }
   }
 
-  protected async *iterIds() {
+  async *iterIds() {
     const filenames = await this.files.list(this.dirpath)
     for (const filename of filenames) {
       if (!filename.endsWith('.json')) continue

@@ -1,13 +1,15 @@
-import { JsonEntryParser, Promisable } from '../common/types'
+import { SingleEntryDb, JsonEntryParser, Promisable } from '../common'
 import { Files } from './files'
 
-export class SingleEntryFileDb<T> {
+export class SingleEntryFileDb<T> extends SingleEntryDb<T> {
   protected readonly files: Files = new Files()
 
   constructor(
     protected readonly filepath: string,
     protected readonly parser: JsonEntryParser<T> = JSON,
-  ) {}
+  ) {
+    super()
+  }
 
   path() {
     return this.filepath

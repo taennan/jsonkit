@@ -1,4 +1,5 @@
-import { Identifiable, Promisable, MultiEntryDb } from '../common'
+import { Identifiable, Promisable, MultiEntryDb, JsonEntryParser } from '../common'
+import { MultiEntryFileDb } from '../file/multiEntryFileDb'
 
 export class MultiEntryMemDb<T extends Identifiable> extends MultiEntryDb<T> {
   protected entries: Map<T['id'], T> = new Map()
@@ -33,15 +34,31 @@ export class MultiEntryMemDb<T extends Identifiable> extends MultiEntryDb<T> {
     this.entries.clear()
   }
 
-  protected async *iterEntries() {
+  async *iterEntries() {
     for (const entry of this.entries.values()) {
       yield entry
     }
   }
 
-  protected async *iterIds() {
+  async *iterIds() {
     for (const id of this.entries.keys()) {
       yield id
+    }
+  }
+
+  async persist(dirpath: string) {
+    const fileDb = new MultiEntryFileDb<T>(dirpath)
+    await fileDb.destroy()
+
+    const values = [...this.entries.values()]
+    await Promise.all(values.map((entry) => fileDb.create(entry)))
+  }
+
+  async load(dirpath: string, parser?: JsonEntryParser<T>) {
+    const fileDb = new MultiEntryFileDb<T>(dirpath, { parser })
+
+    for await (const entry of fileDb.iterEntries()) {
+      await this.create(entry)
     }
   }
 }

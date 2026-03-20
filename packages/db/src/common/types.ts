@@ -19,6 +19,8 @@ export type DeleteManyOutput = {
 
 export type PredicateFn<T extends Identifiable> = (entry: T) => boolean
 
+export type UpdaterFn<T> = (entry: T) => Promisable<Partial<T>>
+
 export type JsonEntryParser<T> = {
   parse: (text: string) => T
 }

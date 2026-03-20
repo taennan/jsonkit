@@ -59,4 +59,4 @@ export function rollupConfig(packageJson = {}) {
   ]
 }
 
-export default rollupConfig()
+export default rollupConfig
