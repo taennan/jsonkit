@@ -1,4 +1,5 @@
 export * from './multiEntryDb'
 export * from './singleEntryDb'
+export * from './runJsonEntryParser'
 export * from './types'
 export * from './errors'

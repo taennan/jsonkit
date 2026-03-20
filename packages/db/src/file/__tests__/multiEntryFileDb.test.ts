@@ -1,4 +1,4 @@
-import type { Identifiable } from '../../common/types'
+import type { Identifiable, JsonEntryParser } from '../../common/types'
 import { MultiEntryFileDb } from '../multiEntryFileDb'
 import * as fs from 'fs/promises'
 import * as path from 'path'
@@ -22,21 +22,13 @@ const testOutputPath = path.join(__dirname, 'multiEntryFileDb')
 
 const dbpath = (...segments: string[]) => path.join(testOutputPath, ...segments)
 
-const createDb = (
+const setupDbWithEntries = async <T extends Identifiable = any>(
   dirName: string,
-  options: {
-    initialEntries?: MockEntry[]
-  } = {},
+  entries: Array<MockEntry> = [],
+  parser?: JsonEntryParser<T>,
 ) => {
-  const { initialEntries } = options
   const dirpath = dbpath(dirName)
-  const database = new MultiEntryFileDb<MockEntry>(dirpath)
-
-  return { db: database, dirpath, initialEntries }
-}
-
-const setupDbWithEntries = async (dirName: string, entries: Array<MockEntry> = []) => {
-  const { db, dirpath } = createDb(dirName)
+  const db = new MultiEntryFileDb<MockEntry>(dirpath)
 
   // Clean and create directory
   await fs.rm(dirpath, { recursive: true, force: true })
@@ -134,6 +126,32 @@ describe('MultiEntryFileDb', () => {
       const result = await db.getById('any-id')
 
       expect(result).toBeNull()
+    })
+
+    it('gets entry with object id', async () => {
+      class MockObjectIdEntry {
+        constructor(readonly value: string | number) {}
+
+        toString() {
+          return `${this.value}`
+        }
+      }
+
+      const mockObjectIdParser = {
+        parse: (text: string) => {
+          const data = JSON.parse(text)
+          data['id'] = new MockObjectIdEntry(data['id'])
+          return data
+        },
+      }
+
+      const id = new MockObjectIdEntry('mock-object-id')
+      const entry = mockEntry({ id })
+      const { db } = await setupDbWithEntries('get-object-id', [entry], mockObjectIdParser)
+
+      const result = await db.getById(id)
+
+      expect(result).toEqual(entry)
     })
   })
 

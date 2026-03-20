@@ -14,6 +14,6 @@ export class InvalidIdError extends DbError {
 
 export class UninitError extends DbError {
   constructor() {
-    super('Cannot read or update uninitialized entry. Use write(entry) to initialize first.')
+    super('Cannot read or update uninitialized entry. Use write(entry) to initialize first')
   }
 }

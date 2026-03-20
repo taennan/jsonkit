@@ -57,6 +57,7 @@ export class MultiEntryMemDb<T extends Identifiable> extends MultiEntryDb<T> {
   async load(dirpath: string, parser?: JsonEntryParser<T>) {
     const fileDb = new MultiEntryFileDb<T>(dirpath, { parser })
 
+    await this.destroy()
     for await (const entry of fileDb.iterEntries()) {
       await this.create(entry)
     }

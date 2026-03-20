@@ -2,7 +2,12 @@ export type Identifiable = {
   id: Id
 }
 
-export type Id = string
+export type Id =
+  | string
+  | number
+  | {
+      toString: () => string
+    }
 
 export type Promisable<T> = T | Promise<T>
 
@@ -21,8 +26,11 @@ export type PredicateFn<T extends Identifiable> = (entry: T) => boolean
 
 export type UpdaterFn<T> = (entry: T) => Promisable<Partial<T>>
 
-export type JsonEntryParser<T> = {
-  parse: (text: string) => T
+export type JsonEntryParser<T> = JsonEntryParserFn<T> | JsonEntryParserObj<T>
+
+type JsonEntryParserFn<T> = (text: string) => T
+type JsonEntryParserObj<T> = {
+  parse: JsonEntryParserFn<T>
 }
 
 export type MultiEntryFileDbOptions<T> = {

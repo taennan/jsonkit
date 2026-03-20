@@ -6,6 +6,7 @@ import {
   MultiEntryFileDbOptions,
   MultiEntryDb,
   InvalidIdError,
+  runJsonEntryParser,
 } from '../common'
 import { Files } from './files'
 import * as path from 'path'
@@ -35,7 +36,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     try {
       const filepath = this.getFilePath(id)
       const text = await this.files.read(filepath)
-      const entry = this.parser.parse(text)
+      const entry = runJsonEntryParser(this.parser, text)
       return entry
     } catch (error) {
       console.error('Failed to read entry', error)
@@ -78,7 +79,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
   }
 
   protected getFilePath(id: T['id']) {
-    return path.join(this.dirpath, `${id}.json`)
+    return path.join(this.dirpath, `${String(id)}.json`)
   }
 
   protected async writeEntry(entry: T) {
@@ -88,11 +89,10 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     await this.files.write(filepath, JSON.stringify(entry, null, 2))
   }
 
-  isIdValid(id: T['id']): boolean {
-    if (typeof id !== 'string') return false
-
+  isIdValid(rawId: T['id']): boolean {
     if (!this.noPathlikeIds) return true
 
+    const id = String(rawId)
     if (id.includes('/') || id.includes('\\')) return false
 
     return true
@@ -105,13 +105,32 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     }
   }
 
-  async *iterIds() {
+  async *iterIds(objectIdParser?: JsonEntryParser<T['id']>): AsyncGenerator<T['id']> {
     const filenames = await this.files.list(this.dirpath)
     for (const filename of filenames) {
       if (!filename.endsWith('.json')) continue
 
-      const id = filename.replace(/\.json$/, '')
+      const stringId = filename.replace(/\.json$/, '')
+      const id = objectIdParser ? runJsonEntryParser(objectIdParser, stringId) : stringId
       if (this.isIdValid(id)) yield id
     }
+  }
+}
+
+type ObjId = {
+  value: string
+  toString: () => string
+}
+
+type Entry = {
+  id: ObjId
+}
+
+const test = async () => {
+  const x = new MultiEntryFileDb<Entry>('test')
+  const a = x.iterIds((y) => ({ value: y, toString: () => y }))
+
+  for await (const c of a) {
+    console.log(c)
   }
 }

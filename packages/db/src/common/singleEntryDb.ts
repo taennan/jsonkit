@@ -1,4 +1,4 @@
-import type { Promisable, UpdaterFn } from '../common/types'
+import type { UpdaterFn } from './types'
 
 export abstract class SingleEntryDb<T> {
   abstract isInited(): Promise<boolean>
