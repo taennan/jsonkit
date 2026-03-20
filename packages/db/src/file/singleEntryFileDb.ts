@@ -1,4 +1,4 @@
-import { SingleEntryDb, JsonEntryParser, Promisable } from '../common'
+import { SingleEntryDb, JsonEntryParser, Promisable, runJsonEntryParser } from '../common'
 import { Files } from './files'
 
 export class SingleEntryFileDb<T> extends SingleEntryDb<T> {
@@ -22,7 +22,7 @@ export class SingleEntryFileDb<T> extends SingleEntryDb<T> {
 
   async read() {
     const text = await this.files.read(this.filepath)
-    const entry = this.parser.parse(text)
+    const entry = runJsonEntryParser(this.parser, text)
     return entry
   }
 
