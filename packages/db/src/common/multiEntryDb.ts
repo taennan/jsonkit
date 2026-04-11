@@ -132,7 +132,8 @@ export abstract class MultiEntryDb<T extends Identifiable> {
   }
 
   async exists(id: T['id']): Promise<boolean> {
-    return (await this.getById(id)) !== null
+    const existing = await this.getById(id)
+    return existing !== null
   }
 
   countAll(): Promise<number> {
