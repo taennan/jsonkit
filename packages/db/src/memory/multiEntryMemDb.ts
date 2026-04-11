@@ -1,4 +1,4 @@
-import { Identifiable, Promisable, MultiEntryDb, JsonEntryParser } from '../common'
+import { Identifiable, MultiEntryDb, JsonEntryParser, UpdaterFn } from '../common'
 import { MultiEntryFileDb } from '../file/multiEntryFileDb'
 
 export class MultiEntryMemDb<T extends Identifiable> extends MultiEntryDb<T> {
@@ -13,15 +13,15 @@ export class MultiEntryMemDb<T extends Identifiable> extends MultiEntryDb<T> {
     return this.entries.get(id) ?? null
   }
 
-  async update(id: T['id'], updater: (entry: T) => Promisable<Partial<T>>): Promise<T> {
-    const entry = await this.getByIdOrThrow(id)
-
+  protected async updateEntry(entry: T, updater: UpdaterFn<T>): Promise<T> {
     const updatedEntryFields = await updater(entry)
     const updatedEntry = { ...entry, ...updatedEntryFields }
 
     this.entries.set(updatedEntry.id, updatedEntry)
 
-    if (updatedEntry.id !== id) this.entries.delete(id)
+    if (updatedEntry.id !== entry.id) {
+      await this.deleteById(entry.id)
+    }
 
     return updatedEntry
   }

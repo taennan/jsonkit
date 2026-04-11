@@ -74,7 +74,7 @@ describe('SingleEntryMemDb', () => {
     it('should throw error when entry is not initialized', async () => {
       const db = new SingleEntryMemDb<MockEntry>()
 
-      expect(db.read()).rejects.toThrow(UninitError)
+      await expect(db.read()).rejects.toThrow(UninitError)
     })
 
     it('should return same reference for multiple reads', async () => {
@@ -136,10 +136,10 @@ describe('SingleEntryMemDb', () => {
         expect(result.id).toBe('test')
       })
 
-      it('should throw when updating uninitialized entry', () => {
+      it('should throw when updating uninitialized entry', async () => {
         const db = new SingleEntryMemDb<MockEntry>()
 
-        expect(db.write(() => ({ title: 'Updated' }))).rejects.toThrow(UninitError)
+        await expect(db.write(() => ({ title: 'Updated' }))).rejects.toThrow(UninitError)
       })
 
       it('should merge updater result with existing entry', async () => {
@@ -191,7 +191,7 @@ describe('SingleEntryMemDb', () => {
       await db.delete()
 
       expect(await db.isInited()).toBe(false)
-      expect(db.read()).rejects.toThrow(UninitError)
+      await expect(db.read()).rejects.toThrow(UninitError)
     })
 
     it('should be idempotent on uninitialized entry', async () => {

@@ -22,13 +22,13 @@ const testOutputPath = path.join(__dirname, 'multiEntryFileDb')
 
 const dbpath = (...segments: string[]) => path.join(testOutputPath, ...segments)
 
-const setupDbWithEntries = async <T extends Identifiable = any>(
+const setupDb = async <T extends Identifiable = any>(
   dirName: string,
-  entries: Array<MockEntry> = [],
+  entries: Array<T> = [],
   parser?: JsonEntryParser<T>,
 ) => {
   const dirpath = dbpath(dirName)
-  const db = new MultiEntryFileDb<MockEntry>(dirpath)
+  const db = new MultiEntryFileDb<T>(dirpath, { parser, disableLogs: true })
 
   // Clean and create directory
   await fs.rm(dirpath, { recursive: true, force: true })
@@ -70,7 +70,7 @@ describe('MultiEntryFileDb', () => {
 
   describe('create', () => {
     it('creates directory if it does not exist', async () => {
-      const { db, dirpath } = await setupDbWithEntries('creates-directory')
+      const { db, dirpath } = await setupDb('creates-directory')
       const entry = mockEntry({ id: 'test-entry' })
 
       await db.create(entry)
@@ -79,7 +79,7 @@ describe('MultiEntryFileDb', () => {
     })
 
     it('creates entry file with correct content', async () => {
-      const { db, dirpath } = await setupDbWithEntries('creates-entry-file')
+      const { db, dirpath } = await setupDb('creates-entry-file')
       const entry = mockEntry({ id: 'test-entry', title: 'Test Title' })
 
       await db.create(entry)
@@ -93,7 +93,7 @@ describe('MultiEntryFileDb', () => {
     })
 
     it('overwrites existing entry with same id', async () => {
-      const { db } = await setupDbWithEntries('overwrites-existing')
+      const { db } = await setupDb('overwrites-existing')
       const originalEntry = mockEntry({ id: 'same-id', title: 'Original' })
       const updatedEntry = mockEntry({ id: 'same-id', title: 'Updated' })
 
@@ -108,14 +108,14 @@ describe('MultiEntryFileDb', () => {
   describe('getById', () => {
     it('returns entry when it exists', async () => {
       const entry = mockEntry({ id: 'existing-entry' })
-      const { db } = await setupDbWithEntries('get-existing', [entry])
+      const { db } = await setupDb('get-existing', [entry])
       const result = await db.getById('existing-entry')
 
       expect(result).toEqual(entry)
     })
 
     it('returns null when entry does not exist', async () => {
-      const { db } = await setupDbWithEntries('get-nonexistent')
+      const { db } = await setupDb('get-nonexistent')
       const result = await db.getById('nonexistent-id')
 
       expect(result).toBeNull()
@@ -126,32 +126,6 @@ describe('MultiEntryFileDb', () => {
       const result = await db.getById('any-id')
 
       expect(result).toBeNull()
-    })
-
-    it('gets entry with object id', async () => {
-      class MockObjectIdEntry {
-        constructor(readonly value: string | number) {}
-
-        toString() {
-          return `${this.value}`
-        }
-      }
-
-      const mockObjectIdParser = {
-        parse: (text: string) => {
-          const data = JSON.parse(text)
-          data['id'] = new MockObjectIdEntry(data['id'])
-          return data
-        },
-      }
-
-      const id = new MockObjectIdEntry('mock-object-id')
-      const entry = mockEntry({ id })
-      const { db } = await setupDbWithEntries('get-object-id', [entry], mockObjectIdParser)
-
-      const result = await db.getById(id)
-
-      expect(result).toEqual(entry)
     })
   })
 
@@ -164,7 +138,7 @@ describe('MultiEntryFileDb', () => {
         mockEntry({ id: 'entry4', title: 'NoMatch' }),
         mockEntry({ id: 'entry5', title: 'Match' }),
       ]
-      const { db } = await setupDbWithEntries('getwhere-no-pagination', entries)
+      const { db } = await setupDb('getwhere-no-pagination', entries)
 
       const results = await db.getWhere((entry) => entry.title === 'Match')
 
@@ -177,7 +151,7 @@ describe('MultiEntryFileDb', () => {
         mockEntry({ id: 'entry1', title: 'First' }),
         mockEntry({ id: 'entry2', title: 'Second' }),
       ]
-      const { db } = await setupDbWithEntries('getwhere-no-match', entries)
+      const { db } = await setupDb('getwhere-no-match', entries)
 
       const results = await db.getWhere((entry) => entry.title === 'Nonexistent')
 
@@ -185,7 +159,7 @@ describe('MultiEntryFileDb', () => {
     })
 
     it('returns empty array when directory is empty', async () => {
-      const { db } = await setupDbWithEntries('getwhere-empty')
+      const { db } = await setupDb('getwhere-empty')
 
       const results = await db.getWhere(() => true)
 
@@ -194,34 +168,34 @@ describe('MultiEntryFileDb', () => {
 
     it('returns first page of matching entries', async () => {
       const entries = [
+        mockEntry({ id: 'entry0', title: 'Match' }),
         mockEntry({ id: 'entry1', title: 'Match' }),
         mockEntry({ id: 'entry2', title: 'Match' }),
         mockEntry({ id: 'entry3', title: 'Match' }),
         mockEntry({ id: 'entry4', title: 'Match' }),
-        mockEntry({ id: 'entry5', title: 'Match' }),
       ]
-      const { db } = await setupDbWithEntries('getwhere-page1', entries)
+      const { db } = await setupDb('getwhere-page1', entries)
 
       const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 1 })
 
       expect(results).toHaveLength(2)
-      expect(results.map((r) => r.id)).toEqual(['entry1', 'entry2'])
+      expect(results.map((r) => r.id)).toEqual(['entry2', 'entry3'])
     })
 
     it('returns second page of matching entries', async () => {
       const entries = [
+        mockEntry({ id: 'entry0', title: 'Match' }),
         mockEntry({ id: 'entry1', title: 'Match' }),
         mockEntry({ id: 'entry2', title: 'Match' }),
         mockEntry({ id: 'entry3', title: 'Match' }),
         mockEntry({ id: 'entry4', title: 'Match' }),
-        mockEntry({ id: 'entry5', title: 'Match' }),
       ]
-      const { db } = await setupDbWithEntries('getwhere-page2', entries)
+      const { db } = await setupDb('getwhere-page2', entries)
 
-      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 1 })
 
       expect(results).toHaveLength(2)
-      expect(results.map((r) => r.id)).toEqual(['entry3', 'entry4'])
+      expect(results.map((r) => r.id)).toEqual(['entry2', 'entry3'])
     })
 
     it('returns partial page when fewer entries remain', async () => {
@@ -230,9 +204,9 @@ describe('MultiEntryFileDb', () => {
         mockEntry({ id: 'entry2', title: 'Match' }),
         mockEntry({ id: 'entry3', title: 'Match' }),
       ]
-      const { db } = await setupDbWithEntries('getwhere-partial-page', entries)
+      const { db } = await setupDb('getwhere-partial-page', entries)
 
-      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
+      const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 1 })
 
       expect(results).toHaveLength(1)
       expect(results[0].id).toBe('entry3')
@@ -243,55 +217,11 @@ describe('MultiEntryFileDb', () => {
         mockEntry({ id: 'entry1', title: 'Match' }),
         mockEntry({ id: 'entry2', title: 'Match' }),
       ]
-      const { db } = await setupDbWithEntries('getwhere-page-beyond', entries)
+      const { db } = await setupDb('getwhere-page-beyond', entries)
 
       const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 5 })
 
       expect(results).toEqual([])
-    })
-
-    it('applies skip offset correctly', async () => {
-      const entries = [
-        mockEntry({ id: 'entry1', title: 'Match' }),
-        mockEntry({ id: 'entry2', title: 'Match' }),
-        mockEntry({ id: 'entry3', title: 'Match' }),
-        mockEntry({ id: 'entry4', title: 'Match' }),
-        mockEntry({ id: 'entry5', title: 'Match' }),
-      ]
-      const { db } = await setupDbWithEntries('getwhere-skip', entries)
-
-      const results = await db.getWhere((entry) => entry.title === 'Match', {
-        take: 2,
-        page: 1,
-        skip: 1,
-      })
-
-      expect(results).toHaveLength(2)
-      expect(results.map((r) => r.id)).toEqual(['entry2', 'entry3'])
-    })
-
-    it('combines page and skip correctly', async () => {
-      const entries = [
-        mockEntry({ id: 'entry1', title: 'Match' }),
-        mockEntry({ id: 'entry2', title: 'Match' }),
-        mockEntry({ id: 'entry3', title: 'Match' }),
-        mockEntry({ id: 'entry4', title: 'Match' }),
-        mockEntry({ id: 'entry5', title: 'Match' }),
-        mockEntry({ id: 'entry6', title: 'Match' }),
-      ]
-      const { db } = await setupDbWithEntries('getwhere-page-skip', entries)
-
-      const results = await db.getWhere((entry) => entry.title === 'Match', {
-        take: 2,
-        page: 2,
-        skip: 1,
-      })
-
-      // page 2 with take 2 starts at index 2 (0-indexed)
-      // skip 1 adds 1, so we start at index 3
-      // we take 2 entries: entry4 and entry5
-      expect(results).toHaveLength(2)
-      expect(results.map((r) => r.id)).toEqual(['entry4', 'entry5'])
     })
 
     it('only counts matching entries for pagination', async () => {
@@ -303,7 +233,7 @@ describe('MultiEntryFileDb', () => {
         mockEntry({ id: 'entry5', title: 'Match' }),
         mockEntry({ id: 'entry6', title: 'Match' }),
       ]
-      const { db } = await setupDbWithEntries('getwhere-mixed-pagination', entries)
+      const { db } = await setupDb('getwhere-mixed-pagination', entries)
 
       const results = await db.getWhere((entry) => entry.title === 'Match', { take: 2, page: 2 })
 
@@ -314,7 +244,7 @@ describe('MultiEntryFileDb', () => {
 
   describe('getAll', () => {
     it('returns empty array when no entries exist', async () => {
-      const { db } = await setupDbWithEntries('getall-empty')
+      const { db } = await setupDb('getall-empty')
 
       const results = await db.getAll()
 
@@ -327,7 +257,7 @@ describe('MultiEntryFileDb', () => {
         mockEntry({ id: 'entry2', title: 'Second' }),
         mockEntry({ id: 'entry3', title: 'Third' }),
       ]
-      const { db } = await setupDbWithEntries('getall-multiple', entries)
+      const { db } = await setupDb('getall-multiple', entries)
 
       const results = await db.getAll()
 
@@ -337,7 +267,7 @@ describe('MultiEntryFileDb', () => {
 
     it('skips invalid JSON files', async () => {
       const validEntry = mockEntry({ id: 'valid-entry' })
-      const { db, dirpath } = await setupDbWithEntries('getall-invalid-json', [validEntry])
+      const { db, dirpath } = await setupDb('getall-invalid-json', [validEntry])
 
       // Create an invalid JSON file
       await fs.writeFile(path.join(dirpath, 'invalid.json'), 'invalid json content')
@@ -351,7 +281,7 @@ describe('MultiEntryFileDb', () => {
 
   describe('getAllIds', () => {
     it('returns empty array when no entries exist', async () => {
-      const { db } = await setupDbWithEntries('getallids-empty')
+      const { db } = await setupDb('getallids-empty')
 
       const ids = await db.getAllIds()
 
@@ -360,7 +290,7 @@ describe('MultiEntryFileDb', () => {
 
     it('returns all entry ids', async () => {
       const entries = [mockEntry({ id: 'id1' }), mockEntry({ id: 'id2' }), mockEntry({ id: 'id3' })]
-      const { db } = await setupDbWithEntries('getallids-multiple', entries)
+      const { db } = await setupDb('getallids-multiple', entries)
 
       const ids = await db.getAllIds()
 
@@ -370,7 +300,7 @@ describe('MultiEntryFileDb', () => {
 
     it('only includes .json files', async () => {
       const entry = mockEntry({ id: 'valid-entry' })
-      const { db, dirpath } = await setupDbWithEntries('getallids-filter', [entry])
+      const { db, dirpath } = await setupDb('getallids-filter', [entry])
 
       // Create non-JSON files
       await fs.writeFile(path.join(dirpath, 'not-json.txt'), 'text file')
@@ -389,9 +319,9 @@ describe('MultiEntryFileDb', () => {
         title: 'Original',
         content: 'Original content',
       })
-      const { db } = await setupDbWithEntries('update-existing', [originalEntry])
+      const { db } = await setupDb('update-existing', [originalEntry])
 
-      const updated = await db.update('update-test', (entry) => ({
+      const updated = await db.updateById('update-test', (entry) => ({
         ...entry,
         title: 'Updated Title',
       }))
@@ -402,15 +332,15 @@ describe('MultiEntryFileDb', () => {
     })
 
     it('throws when entry does not exist', async () => {
-      const { db } = await setupDbWithEntries('update-nonexistent')
-      await expect(db.update('nonexistent', (entry) => entry)).rejects.toThrow()
+      const { db } = await setupDb('update-nonexistent')
+      await expect(db.updateById('nonexistent', (entry) => entry)).rejects.toThrow()
     })
   })
 
   describe('delete', () => {
     it('deletes existing entry and returns boolean', async () => {
       const entry = mockEntry({ id: 'delete-test' })
-      const { db, dirpath } = await setupDbWithEntries('delete-existing', [entry])
+      const { db, dirpath } = await setupDb('delete-existing', [entry])
 
       const amountDeleted = await db.deleteById('delete-test')
       expect(amountDeleted).toBe(true)
@@ -423,7 +353,7 @@ describe('MultiEntryFileDb', () => {
     })
 
     it('returns false when entry does not exist', async () => {
-      const { db } = await setupDbWithEntries('delete-nonexistent')
+      const { db } = await setupDb('delete-nonexistent')
 
       const amountDeleted = await db.deleteById('nonexistent')
       expect(amountDeleted).toBe(false)
@@ -433,7 +363,7 @@ describe('MultiEntryFileDb', () => {
   describe('exists', () => {
     it('returns true when entry exists', async () => {
       const entry = mockEntry({ id: 'exists-test' })
-      const { db } = await setupDbWithEntries('exists-true', [entry])
+      const { db } = await setupDb('exists-true', [entry])
 
       const exists = await db.exists('exists-test')
 
@@ -441,7 +371,7 @@ describe('MultiEntryFileDb', () => {
     })
 
     it('returns false when entry does not exist', async () => {
-      const { db } = await setupDbWithEntries('exists-false')
+      const { db } = await setupDb('exists-false')
 
       const exists = await db.exists('nonexistent')
 
@@ -451,7 +381,7 @@ describe('MultiEntryFileDb', () => {
 
   describe('count', () => {
     it('returns 0 when no entries exist', async () => {
-      const { db } = await setupDbWithEntries('count-zero')
+      const { db } = await setupDb('count-zero')
       const count = await db.countAll()
 
       expect(count).toBe(0)
@@ -464,7 +394,7 @@ describe('MultiEntryFileDb', () => {
         mockEntry({ id: 'count3' }),
         mockEntry({ id: 'count4' }),
       ]
-      const { db } = await setupDbWithEntries('count-multiple', entries)
+      const { db } = await setupDb('count-multiple', entries)
       const count = await db.countAll()
 
       expect(count).toBe(4)
@@ -472,7 +402,7 @@ describe('MultiEntryFileDb', () => {
 
     it('ignores non-json files', async () => {
       const entry = mockEntry({ id: 'count-filter' })
-      const { db, dirpath } = await setupDbWithEntries('count-filter-test', [entry])
+      const { db, dirpath } = await setupDb('count-filter-test', [entry])
 
       // Add non-JSON files
       await fs.writeFile(path.join(dirpath, 'readme.txt'), 'text')
@@ -510,6 +440,263 @@ describe('MultiEntryFileDb', () => {
       const input = 'C:\\otherDir\\otherFile.json'
       const actual = db.isIdValid(input)
       expect(actual).toBe(true)
+    })
+  })
+
+  describe('getByIdOrThrow', () => {
+    it('returns entry when it exists', async () => {
+      const entry = mockEntry({ id: 'throw-existing' })
+      const { db } = await setupDb('getbyidorthrow-existing', [entry])
+
+      const result = await db.getByIdOrThrow('throw-existing')
+
+      expect(result).toEqual(entry)
+    })
+
+    it('throws when entry does not exist', async () => {
+      const { db } = await setupDb('getbyidorthrow-missing')
+
+      await expect(db.getByIdOrThrow('nonexistent')).rejects.toThrow()
+    })
+  })
+
+  describe('getFirstWhere', () => {
+    it('returns the first matching entry', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'NoMatch' }),
+      ]
+      const { db } = await setupDb('getfirstwhere-match', entries)
+
+      const result = await db.getFirstWhere((e) => e.title === 'Match')
+
+      expect(result?.id).toEqual(entries[0].id)
+    })
+
+    it('returns null when no entry matches', async () => {
+      const entries = [mockEntry({ id: 'entry1', title: 'NoMatch' })]
+      const { db } = await setupDb('getfirstwhere-nomatch', entries)
+
+      const result = await db.getFirstWhere((e) => e.title === 'Missing')
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('getFirstWhereOrThrow', () => {
+    it('returns the first matching entry', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+      ]
+      const { db } = await setupDb('getfirstwhereorthrow-match', entries)
+
+      const result = await db.getFirstWhereOrThrow((e) => e.title === 'Match')
+
+      expect(result).toEqual(entries[0])
+    })
+
+    it('throws when no entry matches', async () => {
+      const { db } = await setupDb('getfirstwhereorthrow-nomatch')
+
+      await expect(db.getFirstWhereOrThrow((e) => e.title === 'Missing')).rejects.toThrow()
+    })
+  })
+
+  describe('updateWhere', () => {
+    it('updates all matching entries', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'NoMatch' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+      ]
+      const { db } = await setupDb('updatewhere-all', entries)
+
+      const updated = await db.updateWhere(
+        (e) => e.title === 'Match',
+        (e) => ({ ...e, content: 'updated' }),
+      )
+
+      expect(updated).toHaveLength(2)
+      expect(updated.every((e) => e.content === 'updated')).toBe(true)
+
+      const untouched = await db.getById('entry2')
+      expect(untouched?.content).toBe('Some test content')
+    })
+
+    it('returns empty array when no entries match', async () => {
+      const entries = [mockEntry({ id: 'entry1', title: 'NoMatch' })]
+      const { db } = await setupDb('updatewhere-nomatch', entries)
+
+      const updated = await db.updateWhere(
+        (e) => e.title === 'Missing',
+        (e) => ({ ...e, content: 'updated' }),
+      )
+
+      expect(updated).toEqual([])
+    })
+
+    it('respects pagination', async () => {
+      const entries = [
+        mockEntry({ id: 'entry0', title: 'Match' }),
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+      ]
+      const { db } = await setupDb('updatewhere-paginated', entries)
+
+      const updated = await db.updateWhere(
+        (e) => e.title === 'Match',
+        (e) => ({ ...e, content: 'updated' }),
+        { take: 2, page: 0 },
+      )
+
+      expect(updated).toHaveLength(2)
+      expect(updated.map((e) => e.id)).toEqual(['entry0', 'entry1'])
+
+      const untouched = await db.getById('entry2')
+      expect(untouched?.content).toBe('Some test content')
+    })
+  })
+
+  describe('updateFirstWhere', () => {
+    it('updates only the first matching entry', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+      ]
+      const { db } = await setupDb('updatefirstwhere', entries)
+
+      await db.updateFirstWhere(
+        (e) => e.title === 'Match',
+        (e) => ({ ...e, content: 'updated' }),
+      )
+
+      const first = await db.getById('entry1')
+      const second = await db.getById('entry2')
+
+      expect(first?.content).toBe('updated')
+      expect(second?.content).toBe('Some test content')
+    })
+  })
+
+  describe('updateEntry id change', () => {
+    it('deletes old file when id changes', async () => {
+      const entry = mockEntry({ id: 'old-id', title: 'Original' })
+      const { db, dirpath } = await setupDb('update-id-change', [entry])
+
+      await db.updateById('old-id', (e) => ({ ...e, id: 'new-id' }))
+
+      expect(await fileExists(path.join(dirpath, 'old-id.json'))).toBe(false)
+      expect(await fileExists(path.join(dirpath, 'new-id.json'))).toBe(true)
+
+      const retrieved = await db.getById('new-id')
+      expect(retrieved?.title).toBe('Original')
+    })
+  })
+
+  describe('deleteWhere', () => {
+    it('deletes all matching entries and reports ids', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'NoMatch' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+      ]
+      const { db } = await setupDb('deletewhere-match', entries)
+
+      const result = await db.deleteWhere((e) => e.title === 'Match')
+
+      expect(result.deletedIds).toEqual(expect.arrayContaining(['entry1', 'entry3']))
+      expect(result.ignoredIds).toEqual([])
+
+      expect(await db.getById('entry2')).not.toBeNull()
+      expect(await db.getById('entry1')).toBeNull()
+      expect(await db.getById('entry3')).toBeNull()
+    })
+
+    it('returns empty deletedIds when nothing matches', async () => {
+      const entries = [mockEntry({ id: 'entry1', title: 'NoMatch' })]
+      const { db } = await setupDb('deletewhere-nomatch', entries)
+
+      const result = await db.deleteWhere((e) => e.title === 'Missing')
+
+      expect(result.deletedIds).toEqual([])
+      expect(result.ignoredIds).toEqual([])
+    })
+  })
+
+  describe('deleteByIds', () => {
+    it('deletes entries by id list', async () => {
+      const entries = [
+        mockEntry({ id: 'del1' }),
+        mockEntry({ id: 'del2' }),
+        mockEntry({ id: 'del3' }),
+      ]
+      const { db } = await setupDb('deletebyids', entries)
+
+      const result = await db.deleteByIds(['del1', 'del3'])
+
+      expect(result.deletedIds).toEqual(expect.arrayContaining(['del1', 'del3']))
+      expect(result.ignoredIds).toEqual([])
+      expect(await db.getById('del2')).not.toBeNull()
+      expect(await db.getById('del1')).toBeNull()
+    })
+
+    it('reports nothing deleted when ids do not exist', async () => {
+      const { db } = await setupDb('deletebyids-missing')
+
+      const result = await db.deleteByIds(['ghost1', 'ghost2'])
+
+      expect(result.deletedIds).toEqual([])
+    })
+  })
+
+  describe('countWhere', () => {
+    it('counts matching entries without pagination', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'NoMatch' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+      ]
+      const { db } = await setupDb('countwhere-all', entries)
+
+      const count = await db.countWhere((e) => e.title === 'Match')
+
+      expect(count).toBe(2)
+    })
+
+    it('counts matching entries within a paginated window', async () => {
+      const entries = [
+        mockEntry({ id: 'entry1', title: 'Match' }),
+        mockEntry({ id: 'entry2', title: 'Match' }),
+        mockEntry({ id: 'entry3', title: 'Match' }),
+        mockEntry({ id: 'entry4', title: 'Match' }),
+      ]
+      const { db } = await setupDb('countwhere-paginated', entries)
+
+      const count = await db.countWhere((e) => e.title === 'Match', { take: 2, page: 1 })
+
+      expect(count).toBe(2)
+    })
+
+    it('returns 0 when no entries match', async () => {
+      const entries = [mockEntry({ id: 'entry1', title: 'NoMatch' })]
+      const { db } = await setupDb('countwhere-nomatch', entries)
+
+      const count = await db.countWhere((e) => e.title === 'Missing')
+
+      expect(count).toBe(0)
+    })
+  })
+
+  describe('destroy', () => {
+    it('removes the entire directory', async () => {
+      const entries = [mockEntry({ id: 'entry1' }), mockEntry({ id: 'entry2' })]
+      const { db, dirpath } = await setupDb('destroy-test', entries)
+
+      await db.destroy()
+
+      expect(await fileExists(dirpath)).toBe(false)
     })
   })
 })

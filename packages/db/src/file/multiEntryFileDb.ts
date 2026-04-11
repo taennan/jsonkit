@@ -1,12 +1,12 @@
 import {
   Identifiable,
   DeleteManyOutput,
-  Promisable,
   JsonEntryParser,
   MultiEntryFileDbOptions,
   MultiEntryDb,
   InvalidIdError,
   runJsonEntryParser,
+  UpdaterFn,
 } from '../common'
 import { Files } from './files'
 import * as path from 'path'
@@ -15,6 +15,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
   protected readonly dirpath: string
   protected readonly files: Files
   protected readonly parser: JsonEntryParser<T>
+  protected readonly disableLogs: boolean
   readonly noPathlikeIds: boolean
 
   constructor(dirpath: string, options?: MultiEntryFileDbOptions<T>) {
@@ -23,6 +24,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     this.files = new Files()
     this.parser = options?.parser ?? JSON
     this.noPathlikeIds = options?.noPathlikeIds ?? true
+    this.disableLogs = options?.disableLogs ?? false
   }
 
   async create(entry: T): Promise<T> {
@@ -39,21 +41,19 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
       const entry = runJsonEntryParser(this.parser, text)
       return entry
     } catch (error) {
-      console.error('Failed to read entry', error)
+      if (!this.disableLogs) console.error('Failed to read entry', error)
       // File doesn't exist or invalid JSON
       return null
     }
   }
 
-  async update(id: T['id'], updater: (entry: T) => Promisable<Partial<T>>): Promise<T> {
-    const entry = await this.getByIdOrThrow(id)
-
+  protected async updateEntry(entry: T, updater: UpdaterFn<T>): Promise<T> {
     const updatedEntryFields = await updater(entry)
     const updatedEntry = { ...entry, ...updatedEntryFields }
     await this.writeEntry(updatedEntry)
 
-    if (updatedEntry.id !== id) {
-      await this.deleteById(id)
+    if (updatedEntry.id !== entry.id) {
+      await this.deleteById(entry.id)
     }
 
     return updatedEntry
@@ -114,23 +114,5 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
       const id = objectIdParser ? runJsonEntryParser(objectIdParser, stringId) : stringId
       if (this.isIdValid(id)) yield id
     }
-  }
-}
-
-type ObjId = {
-  value: string
-  toString: () => string
-}
-
-type Entry = {
-  id: ObjId
-}
-
-const test = async () => {
-  const x = new MultiEntryFileDb<Entry>('test')
-  const a = x.iterIds((y) => ({ value: y, toString: () => y }))
-
-  for await (const c of a) {
-    console.log(c)
   }
 }

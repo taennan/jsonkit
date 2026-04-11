@@ -1,4 +1,4 @@
-import { SingleEntryDb, JsonEntryParser, Promisable, runJsonEntryParser } from '../common'
+import { SingleEntryDb, JsonEntryParser, runJsonEntryParser, UpdaterFn } from '../common'
 import { Files } from './files'
 
 export class SingleEntryFileDb<T> extends SingleEntryDb<T> {
@@ -26,7 +26,7 @@ export class SingleEntryFileDb<T> extends SingleEntryDb<T> {
     return entry
   }
 
-  async write(updaterOrEntry: T | ((entry: T) => Promisable<Partial<T>>)): Promise<T> {
+  async write(updaterOrEntry: T | UpdaterFn<T>): Promise<T> {
     let entry: T
     if (typeof updaterOrEntry === 'function') {
       const updater = updaterOrEntry as (entry: T) => T

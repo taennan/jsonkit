@@ -35,7 +35,9 @@ All multi-entry implementations expose the same methods:
 - `getFirstWhereOrThrow(predicate)`
 - `getAll(ids?)`
 - `getAllIds()`
-- `update(id, updater)`
+- `updateById(id, updater)`
+- `updateFirstWhere(predicate, updater)`
+- `updateWhere(predicate, updater, pagination?)`
 - `deleteById(id)`
 - `deleteByIds(ids)`
 - `deleteWhere(predicate)`
@@ -76,6 +78,7 @@ new MultiEntryFileDb<T>(dirpath, options?)
 | --------------- | -------------------------------------- | ------- |
 | `noPathlikeIds` | Reject IDs containing `/` or `\`       | `true`  |
 | `parser`        | Custom JSON parser (`{ parse(text) }`) | `JSON`  |
+| `disableLogs`   | Stops logging errors                   | `false` |
 
 #### Notes
 
@@ -160,7 +163,6 @@ const db = new SingleEntryMemDb<AppConfig>()
 - `read()` throws if uninitialized.
 - `delete()` resets the entry to `null`.
 
----
 
 ## Example
 
@@ -175,16 +177,6 @@ await users.update('u1', (u) => ({ name: 'Alice Smith' }))
 
 const allUsers = await users.getAll()
 ```
-
----
-
-## Use Cases
-
-- Rapid application prototyping
-- CLI tools
-- Small internal services
-- Tests and mocks
-- Configuration and state persistence
 
 ---
 
@@ -235,12 +227,16 @@ type DeleteManyOutput = {
 
 ---
 
+## Goals
+
+- Fast and simple backend prototyping
+- No dependancies
+
 ## Non-goals
 
 - Concurrency control
 - High-performance querying
 - Large datasets
-- ACID guarantees
 
 For these, a dedicated database is recommended.
 

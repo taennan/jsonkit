@@ -14,7 +14,6 @@ export type Promisable<T> = T | Promise<T>
 export type PaginationInput = {
   take: number
   page: number
-  skip?: number | undefined | null
 }
 
 export type DeleteManyOutput = {
@@ -22,7 +21,7 @@ export type DeleteManyOutput = {
   ignoredIds: Id[]
 }
 
-export type PredicateFn<T extends Identifiable> = (entry: T) => boolean
+export type PredicateFn<T extends Identifiable> = (entry: T) => boolean | Promise<boolean>
 
 export type UpdaterFn<T> = (entry: T) => Promisable<Partial<T>>
 
@@ -36,6 +35,7 @@ type JsonEntryParserObj<T> = {
 export type MultiEntryFileDbOptions<T> = {
   noPathlikeIds?: boolean
   parser?: JsonEntryParser<T>
+  disableLogs?: boolean
 }
 
 export type FileMeta = {
