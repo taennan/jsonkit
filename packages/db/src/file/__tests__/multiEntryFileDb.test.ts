@@ -8,6 +8,14 @@ type MockEntry = Identifiable & {
   content?: string
 }
 
+class ObjectId {
+  constructor(private readonly value: number) {}
+
+  toString(): string {
+    return String(this.value)
+  }
+}
+
 const mockEntry = (data: Partial<MockEntry> = {}): MockEntry => {
   const id = data.id || `entry-${Math.floor(Math.random() * 10000)}`
   return {
@@ -129,14 +137,6 @@ describe('MultiEntryFileDb', () => {
     })
 
     it('handles object ids', async () => {
-      class ObjectId {
-        constructor(private readonly value: number) {}
-
-        toString(): string {
-          return String(this.value)
-        }
-      }
-
       const entry = mockEntry({ id: new ObjectId(0) })
       const { db } = await setupDb('get-object-id', [entry])
       const result = await db.getById(entry.id)
@@ -593,6 +593,23 @@ describe('MultiEntryFileDb', () => {
 
       expect(first?.content).toBe('updated')
       expect(second?.content).toBe('Some test content')
+    })
+  })
+
+  describe('updateById', () => {
+    it('handles object ids', async  () => {
+        const entry = mockEntry({ id: new ObjectId(0), title: 'entry0' })
+        const { db } = await setupDb('update-object-id', [entry])
+        const result = await db.updateById(entry.id, (entry) => ({
+          ...entry,
+          title: 'entryUpdated'
+        }))
+
+        expect(result).toEqual({
+          id: entry.id,
+          content: 'Some test content',
+          title: 'entryUpdated'
+        })
     })
   })
 

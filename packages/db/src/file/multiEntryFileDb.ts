@@ -16,6 +16,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
   protected readonly files: Files
   protected readonly parser: JsonEntryParser<T>
   protected readonly disableLogs: boolean
+  protected readonly indent: number
   readonly noPathlikeIds: boolean
 
   constructor(dirpath: string, options?: MultiEntryFileDbOptions<T>) {
@@ -25,6 +26,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     this.parser = options?.parser ?? JSON
     this.noPathlikeIds = options?.noPathlikeIds ?? true
     this.disableLogs = options?.disableLogs ?? false
+    this.indent = options?.indent ?? 2
   }
 
   path(): string {
@@ -91,7 +93,7 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     if (!this.isIdValid(entry.id)) throw new InvalidIdError(entry.id)
 
     const filepath = this.getFilePath(entry.id)
-    await this.files.write(filepath, JSON.stringify(entry, null, 2))
+    await this.files.write(filepath, JSON.stringify(entry, null, this.indent))
   }
 
   isIdValid(rawId: T['id']): boolean {

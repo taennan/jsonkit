@@ -1,8 +1,11 @@
 import type { JsonPath, JsonPrimitiveValue } from './types'
+/*
 import { JsonPatcher } from './patcher'
 import { JsonPatchBuilder } from './builder'
 import { JsonPathJoiner } from './pathJoiner'
 import fastJsonPatch from 'fast-json-patch'
+*/
+import { simpleGet, simpleSet } from './getset'
 
 export enum JsonFieldConversionPreset {
   Date = 'date',
@@ -31,16 +34,17 @@ export class JsonParser {
     const raw = JSON.parse(text)
     if (!this.parsedFields.length) return raw as T
 
-    let patchBuilder = new JsonPatchBuilder()
+    //let patchBuilder = new JsonPatchBuilder()
     for (const parseField of this.parsedFields) {
       const { path, conversion, convertNullsByFn = false } = parseField
-      const joinedPath = new JsonPathJoiner().join(path)
+      //const joinedPath = new JsonPathJoiner().join(path)
 
-      const value = fastJsonPatch.getValueByPointer(raw, joinedPath)
-      const converted = this.convertValue(value, conversion, convertNullsByFn)
-      patchBuilder = patchBuilder.replace(joinedPath, converted)
+      const rawValue: JsonPrimitiveValue = simpleGet(raw, path) //fastJsonPatch.getValueByPointer(raw, joinedPath)
+      const converted = this.convertValue(rawValue, conversion, convertNullsByFn)
+      simpleSet(raw, path, converted)
+      //patchBuilder = patchBuilder.replace(joinedPath, converted)
     }
-
+    /*
     const patches = patchBuilder.patches()
     const patchResult = new JsonPatcher().safePatch<T>(raw as T, patches)
 
@@ -49,6 +53,8 @@ export class JsonParser {
     }
 
     return patchResult.data
+    */
+    return raw as T
   }
 
   protected convertValue<T>(

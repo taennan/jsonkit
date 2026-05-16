@@ -36,6 +36,7 @@ export type MultiEntryFileDbOptions<T> = {
   noPathlikeIds?: boolean
   parser?: JsonEntryParser<T>
   disableLogs?: boolean
+  indent?: number
 }
 
 export type FileMeta = {
