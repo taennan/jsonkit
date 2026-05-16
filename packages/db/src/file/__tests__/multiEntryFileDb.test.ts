@@ -1,4 +1,4 @@
-import type { Identifiable, JsonEntryParser } from '../../common/types'
+import type { Id, Identifiable, JsonEntryParser } from '../../common/types'
 import { MultiEntryFileDb } from '../multiEntryFileDb'
 import * as fs from 'fs/promises'
 import * as path from 'path'
@@ -126,6 +126,22 @@ describe('MultiEntryFileDb', () => {
       const result = await db.getById('any-id')
 
       expect(result).toBeNull()
+    })
+
+    it('handles object ids', async () => {
+      class ObjectId {
+        constructor(private readonly value: number) {}
+
+        toString(): string {
+          return String(this.value)
+        }
+      }
+
+      const entry = mockEntry({ id: new ObjectId(0) })
+      const { db } = await setupDb('get-object-id', [entry])
+      const result = await db.getById(entry.id)
+
+      expect(result).toEqual(entry)
     })
   })
 

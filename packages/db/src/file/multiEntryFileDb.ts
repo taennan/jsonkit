@@ -27,6 +27,10 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
     this.disableLogs = options?.disableLogs ?? false
   }
 
+  path(): string {
+    return this.dirpath
+  }
+
   async create(entry: T): Promise<T> {
     await this.writeEntry(entry)
     return entry
@@ -79,7 +83,8 @@ export class MultiEntryFileDb<T extends Identifiable> extends MultiEntryDb<T> {
   }
 
   protected getFilePath(id: T['id']) {
-    return path.join(this.dirpath, `${String(id)}.json`)
+    const stringified = typeof id['toString'] === 'function' ? id.toString() : String(id)
+    return path.join(this.dirpath, `${stringified}.json`)
   }
 
   protected async writeEntry(entry: T) {
